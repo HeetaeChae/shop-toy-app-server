@@ -1,5 +1,6 @@
 import {
   Column,
+  CreateDateColumn,
   DeleteDateColumn,
   Entity,
   JoinColumn,
@@ -13,8 +14,11 @@ export class Search {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'text' })
   keyword: string;
+
+  @CreateDateColumn({ name: 'searched_at' })
+  searchedAt: Date;
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date;

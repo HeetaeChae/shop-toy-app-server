@@ -5,19 +5,20 @@ import {
   Column,
   Entity,
   JoinColumn,
-  JoinTable,
   ManyToMany,
   ManyToOne,
   OneToMany,
 } from 'typeorm';
 import { BaseEntity } from './BaseEntity.entity';
 import { CartProduct } from './CartProduct.entity';
+import { Category } from './Category.entity';
 import { Inquiry } from './Inquiry.entity';
 import { OrderProduct } from './OrderProduct.entity';
 import { RecentlyViewedProduct } from './RecentlyViewedProduct.entity';
 import { Review } from './Review.entity';
 import { Tag } from './Tag.entity';
 import { User } from './User.entity';
+import { Wish } from './Wish.entity';
 
 @Entity({ name: 'products' })
 export class Product extends BaseEntity {
@@ -77,11 +78,6 @@ export class Product extends BaseEntity {
   inquiries: Inquiry;
 
   @ManyToMany(() => Tag, (tags) => tags.products, { onDelete: 'CASCADE' })
-  @JoinTable({
-    name: 'tag_products',
-    joinColumn: { name: 'product_id' },
-    inverseJoinColumn: { name: 'tag_id' },
-  })
   tags: Tag[];
 
   @OneToMany(
@@ -89,4 +85,15 @@ export class Product extends BaseEntity {
     (recentlyViewedProducts) => recentlyViewedProducts.product,
   )
   recentlyViewedProducts: RecentlyViewedProduct[];
+
+  @ManyToMany(() => Wish, (wishes) => wishes.products, {
+    onDelete: 'CASCADE',
+  })
+  wishes: Wish[];
+
+  @ManyToOne(() => Category, (category) => category.products, {
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'category_id' })
+  category: Category;
 }

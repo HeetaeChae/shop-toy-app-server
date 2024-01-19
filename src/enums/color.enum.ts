@@ -8,4 +8,5 @@ export enum Color {
   PURPLE = 'purple',
   BLACK = 'black',
   WHITE = 'white',
+  GRAY = 'gray',
 }

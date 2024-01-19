@@ -1,5 +1,6 @@
 import { Roles } from 'src/enums/roles.enum';
-import { Column, Entity, ManyToMany, OneToMany } from 'typeorm';
+import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
+import { Address } from './Address.entity';
 import { BaseEntity } from './BaseEntity.entity';
 import { Inquiry } from './Inquiry.entity';
 import { InquiryComment } from './InquiryComment.entity';
@@ -10,9 +11,16 @@ import { RecentlyViewedProduct } from './RecentlyViewedProduct.entity';
 import { Review } from './Review.entity';
 import { ReviewComment } from './ReviewComment';
 import { Search } from './Search.entity';
+import { UserCoupon } from './UserCoupon.entity';
 
 @Entity({ name: 'users' })
 export class User extends BaseEntity {
+  @Column({ unique: true })
+  email: string;
+
+  @Column()
+  password: string;
+
   @Column({ unique: true })
   nickname: string;
 
@@ -34,7 +42,10 @@ export class User extends BaseEntity {
   @OneToMany(() => ReviewComment, (reviewComments) => reviewComments.user)
   reviewComments: ReviewComment[];
 
-  @ManyToMany(() => Review, { onDelete: 'CASCADE' })
+  @ManyToMany(() => Review, (reviews) => reviews.users, {
+    onDelete: 'CASCADE',
+  })
+  @JoinTable()
   reviews: Review[];
 
   @OneToMany(() => Order, (orders) => orders.user)
@@ -54,4 +65,10 @@ export class User extends BaseEntity {
     (recentlyViewedProducts) => recentlyViewedProducts.user,
   )
   recentlyViewedProducts: RecentlyViewedProduct[];
+
+  @OneToMany(() => Address, (addresses) => addresses.user)
+  addresses: Address[];
+
+  @OneToMany(() => UserCoupon, (userCoupons) => userCoupons.user)
+  userCoupons: UserCoupon[];
 }

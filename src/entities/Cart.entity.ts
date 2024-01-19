@@ -14,6 +14,13 @@ export class Cart extends BaseEntity {
   })
   isChecked: IsChecked;
 
+  @Column({
+    name: 'checked_at',
+    type: 'datetime',
+    nullable: true,
+  })
+  checkedAt: Date;
+
   @OneToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;

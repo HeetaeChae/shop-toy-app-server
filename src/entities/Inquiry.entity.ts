@@ -1,5 +1,5 @@
 import { IsSecret } from 'src/enums/is-secret.enum';
-import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { BaseEntity } from './BaseEntity.entity';
 import { InquiryComment } from './InquiryComment.entity';
 import { Product } from './Product.entity';
@@ -22,11 +22,13 @@ export class Inquiry extends BaseEntity {
   isSecret: IsSecret;
 
   @ManyToOne(() => User, (user) => user.inquiries, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
   @ManyToOne(() => Product, (product) => product.inquiries, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'product_id' })
   product: User;
 
   @OneToMany(() => InquiryComment, (inquiryComments) => inquiryComments.inquiry)

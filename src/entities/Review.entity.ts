@@ -21,7 +21,7 @@ export class Review extends BaseEntity {
   @Column({ type: 'text' })
   content: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', name: 'img_url', nullable: true })
   imgUrl: string;
 
   @ManyToOne(() => User, (user) => user.userReviews, {
@@ -39,7 +39,9 @@ export class Review extends BaseEntity {
   @OneToMany(() => ReviewComment, (reviewComments) => reviewComments.review)
   reviewComments: ReviewComment[];
 
-  @ManyToMany(() => User, { onDelete: 'CASCADE' })
+  @ManyToMany(() => User, (users) => users.reviews, {
+    onDelete: 'CASCADE',
+  })
   @JoinTable({
     name: 'review_thumbsups',
     joinColumn: { name: 'review_id' },

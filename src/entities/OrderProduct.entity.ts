@@ -70,6 +70,6 @@ export class OrderProduct {
   @ManyToOne(() => Product, (product) => product.orderProducts, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'order_id' })
+  @JoinColumn({ name: 'product_id' })
   product: Product;
 }
