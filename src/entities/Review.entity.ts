@@ -10,7 +10,8 @@ import {
 } from 'typeorm';
 import { BaseEntity } from './BaseEntity.entity';
 import { Product } from './Product.entity';
-import { ReviewComment } from './ReviewComment';
+import { ReviewComment } from './ReviewComment.entity';
+import { ReviewThumbsup } from './ReviewThumbsup.entity';
 import { User } from './User.entity';
 
 @Entity({ name: 'reviews' })
@@ -26,12 +27,14 @@ export class Review extends BaseEntity {
 
   @ManyToOne(() => User, (user) => user.userReviews, {
     onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
   })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
   @ManyToOne(() => Product, (product) => product.reviews, {
     onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
   })
   @JoinColumn({ name: 'product_id' })
   product: Product;
@@ -39,6 +42,7 @@ export class Review extends BaseEntity {
   @OneToMany(() => ReviewComment, (reviewComments) => reviewComments.review)
   reviewComments: ReviewComment[];
 
+  /*
   @ManyToMany(() => User, (users) => users.reviews, {
     onDelete: 'CASCADE',
   })
@@ -48,4 +52,8 @@ export class Review extends BaseEntity {
     inverseJoinColumn: { name: 'user_id' },
   })
   users: User[];
+  */
+
+  @OneToMany(() => ReviewThumbsup, (reviewThumbsups) => reviewThumbsups.review)
+  reviewThumbsups: ReviewThumbsup[];
 }

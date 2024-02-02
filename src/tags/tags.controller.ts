@@ -2,18 +2,22 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { LoggedInGuard } from 'src/auth/auth-status.guard';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { UserPayloadDto } from 'src/auth/dto/user-payload.dto';
+import { IsUserRoles } from 'src/decorators/is-user-roles.decorator';
+import { UserId } from 'src/decorators/user-id.decorator';
 import { UserPayload } from 'src/decorators/user-payload.decorator';
 import { CreateTagProductDto } from './dto/create-tag-product.dto';
-import { DeleteTagProductDto } from './dto/delete-tag-product.dto';
 import { TagsService } from './tags.service';
 
 @ApiTags('tags')
@@ -25,7 +29,9 @@ export class TagsController {
     summary: '특정 태그의 태그상품 가져오기',
     description: '특정 태그의 태그상품 가져오기 기능 (20개씩)',
   })
-  @Get(':name')
+  @ApiQuery({ name: '페이지', type: 'number' })
+  @ApiQuery({ name: '페이지 요소 개수', type: 'number' })
+  @Get(':name/tag-products')
   async getTagProducts(
     @Param('name') name: string,
     @Query('page') page: number = 1,
@@ -38,6 +44,8 @@ export class TagsController {
     summary: '모든 태그 가져오기',
     description: '모든 태그 가져오기 기능 (20개씩)',
   })
+  @ApiQuery({ name: '페이지', type: 'number' })
+  @ApiQuery({ name: '페이지 요소 개수', type: 'number' })
   @Get()
   async getTags(
     @Query('page') page: number = 1,
@@ -50,30 +58,38 @@ export class TagsController {
     summary: '태그상품 생성하기',
     description: '태그상품 생성하기 기능',
   })
-  @UseGuards(AuthGuard)
-  @Post()
+  @UseGuards(LoggedInGuard)
+  @Post('tag-products')
   async createTagProduct(
-    @UserPayload() userPayloadDto: UserPayloadDto,
+    @IsUserRoles() isUserRoles: boolean,
     @Body() createTagProductDto: CreateTagProductDto,
   ) {
-    const { roles } = userPayloadDto;
-    const { name, productId } = createTagProductDto;
-    return this.tagsService.createTagProduct(roles, name, productId);
+    if (isUserRoles) {
+      throw new ForbiddenException(
+        '일반 회원은 태그상품을 생성할 수 없습니다.',
+      );
+    }
+    const { tagName, productId } = createTagProductDto;
+    return this.tagsService.createTagProduct(tagName, productId);
   }
 
   @ApiOperation({
-    summary: '태그상품 삭제하기',
-    description: '태그상품 삭제하기 기능',
+    summary: '상품태그 삭제하기',
+    description: '상품태그 삭제하기 기능',
   })
-  @UseGuards(AuthGuard)
-  @Delete(':name')
+  @UseGuards(LoggedInGuard)
+  @Delete(':name/products/:id/tag-products')
   async DeleteTagProduct(
-    @UserPayload() userPayloadDto: UserPayloadDto,
-    @Param('name') name: string,
-    @Body() deletePayloadDto: DeleteTagProductDto,
+    @UserId() userId: number,
+    @IsUserRoles() isUserRoles: boolean,
+    @Param('name') tagName: string,
+    @Param('id', ParseIntPipe) productId: number,
   ) {
-    const { roles } = userPayloadDto;
-    const { productId } = deletePayloadDto;
-    return this.tagsService.deleteTagProduct(roles, name, productId);
+    if (isUserRoles) {
+      throw new ForbiddenException(
+        '일반 회원을 상품태그를 삭제할 수 없습니다.',
+      );
+    }
+    return this.tagsService.deleteTagProduct(userId, tagName, productId);
   }
 }

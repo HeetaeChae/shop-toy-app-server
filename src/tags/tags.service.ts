@@ -1,23 +1,22 @@
 import {
-  ConflictException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Tag } from 'src/entities/Tag.entity';
-import { Roles } from 'src/enums/roles.enum';
+import { TagProduct } from 'src/entities/TagProduct.entity';
 import { ProductsService } from 'src/products/products.service';
-import { UsersService } from 'src/users/users.service';
 import { Repository } from 'typeorm';
 
 @Injectable()
 export class TagsService {
   constructor(
     @InjectRepository(Tag) private tagsRepository: Repository<Tag>,
-    private usersService: UsersService,
+    @InjectRepository(TagProduct)
+    private tagProductsRepository: Repository<TagProduct>,
     @Inject(forwardRef(() => ProductsService))
     private productsService: ProductsService,
   ) {}
@@ -50,34 +49,54 @@ export class TagsService {
   }
 
   // 태그 및 태그상품 생성
-  async createTagProduct(roles: number, name: string, productId: number) {
-    if (roles === Roles.USER) {
-      throw new UnauthorizedException('일반 회원은 태그를 생성할 수 없습니다.');
-    }
+  async createTagProduct(tagName: string, productId: number) {
     const product = await this.productsService.getProductById(productId);
     if (!product) {
       throw new NotFoundException('해당 상품이 존재하지 않습니다.');
     }
     const existingTag = await this.tagsRepository.findOne({
-      where: { name },
-      relations: { products: true },
+      where: { name: tagName },
     });
+    let savedTagProduct;
     if (existingTag) {
-      const existingTagProduct = existingTag.products.find(
-        (product) => product.id === productId,
-      );
-      if (existingTagProduct) {
-        throw new ConflictException('태그상품이 이미 존재합니다.');
-      }
-      existingTag.products.push(product);
-      return this.tagsRepository.save(existingTag);
+      const newTagProduct = await this.tagProductsRepository.create({
+        product,
+        tag: existingTag,
+      });
+      savedTagProduct = await this.tagProductsRepository.save(newTagProduct);
+    } else {
+      const newTag = await this.tagsRepository.create({ name: tagName });
+      const savedTag = await this.tagsRepository.save(newTag);
+      const newTagProduct = await this.tagProductsRepository.create({
+        product,
+        tag: savedTag,
+      });
+      savedTagProduct = await this.tagProductsRepository.save(newTagProduct);
     }
-    const newTag = await this.tagsRepository.create({ name });
-    const savedTag = await this.tagsRepository.save(newTag);
-    savedTag.products.push(product);
-    return this.tagsRepository.save(savedTag);
+    return savedTagProduct;
   }
 
   // 태그상품 삭제
-  async deleteTagProduct();
+  async deleteTagProduct(userId: number, tagName: string, productId: number) {
+    const tag = await this.tagsRepository.findOne({ where: { name: tagName } });
+    if (!tag) {
+      throw new NotFoundException('해당 태그가 존재하지 않습니다.');
+    }
+    const product = await this.productsService.getProductById(productId);
+    if (!product) {
+      throw new NotFoundException('해당 상품이 존재하지 않습니다.');
+    }
+    const isProductAuthor = product.user.id === userId;
+    if (!isProductAuthor) {
+      throw new ForbiddenException('해당 상품의 등록자가 아닙니다.');
+    }
+    const tagProduct = await this.tagProductsRepository.findOne({
+      where: { tag, product },
+    });
+    if (!tagProduct) {
+      throw new NotFoundException('해당 상품태그가 존재하지 않습니다.');
+    }
+    const tagProductId = tagProduct.id;
+    await this.tagProductsRepository.softDelete({ id: tagProductId });
+  }
 }

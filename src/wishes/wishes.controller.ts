@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -7,9 +8,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { LoggedInGuard } from 'src/auth/auth-status.guard';
 import { UserPayloadDto } from 'src/auth/dto/user-payload.dto';
+import { UserId } from 'src/decorators/user-id.decorator';
 import { UserPayload } from 'src/decorators/user-payload.decorator';
+import { CreateWishProductDto } from './dto/create-wish-product.dto';
 import { WishesService } from './wishes.service';
 
 @ApiTags('wishes')
@@ -18,54 +21,50 @@ export class WishesController {
   constructor(private wishesService: WishesService) {}
 
   @ApiOperation({
-    summary: '찜한 상품 리스트 가져오기',
-    description: '찜한 상품 리스트 가져오기 기능',
+    summary: '내가 찜한 상품 리스트 가져오기',
+    description: '내가 찜한 상품 리스트 가져오기 기능',
   })
-  @UseGuards(AuthGuard)
-  @Get('')
-  async getWishProducts(@UserPayload() userPayloadDto: UserPayloadDto) {
-    const userId = userPayloadDto.id;
+  @UseGuards(LoggedInGuard)
+  @Get('wish-products')
+  async getWishProducts(@UserId() userId: number) {
     return this.wishesService.getWishProducts(userId);
   }
 
   @ApiOperation({ summary: '상품 찜등록', description: '상품 찜등록 기능' })
-  @UseGuards(AuthGuard)
-  @Post(':wishId/products/:productId')
+  @UseGuards(LoggedInGuard)
+  @Post('wish-products')
   async createWishProduct(
-    @UserPayload() userPayloadDto: UserPayloadDto,
-    @Param('wishId') wishId: number,
-    @Param('productId') productId: number,
+    @UserId() userId: number,
+    @Body() createWishProductDto: CreateWishProductDto,
   ) {
-    const userId = userPayloadDto.id;
+    const { wishId, productId } = createWishProductDto;
     return this.wishesService.createWishProduct(userId, wishId, productId);
   }
 
   @ApiOperation({
-    summary: '모든 찜 상품 삭제',
-    description: '모든 찜한 상품 삭제 기능',
+    summary: '내가 찜한 모든 상품 삭제',
+    description: '내가 찜한 모든 상품 삭제 기능',
   })
-  @UseGuards(AuthGuard)
-  @Delete(':wishId')
+  @UseGuards(LoggedInGuard)
+  @Delete(':id/wish-products')
   async deleteWishProducts(
-    @UserPayload() userPayloadDto: UserPayloadDto,
-    @Param('wishId') wishId: number,
+    @UserId() userId: number,
+    @Param('id') wishId: number,
   ) {
-    const userId = userPayloadDto.id;
     return this.wishesService.deleteWishProducts(userId, wishId);
   }
 
   @ApiOperation({
-    summary: '특정 찜 상품 삭제',
-    description: '특정 찜한 상품 삭제 기능',
+    summary: '내가 찜한 특정 상품 삭제',
+    description: '내가 찜한 특정 상품 삭제 기능',
   })
-  @UseGuards(AuthGuard)
-  @Delete(':wishId/products/:productId')
+  @UseGuards(LoggedInGuard)
+  @Delete(':id/products/:id/wish-products')
   async deleteWishProduct(
-    @UserPayload() userPayloadDto: UserPayloadDto,
-    @Param('wishId') wishId: number,
-    @Param('productId') productId: number,
+    @UserId() userId: number,
+    @Param('id') wishId: number,
+    @Param('id') productId: number,
   ) {
-    const userId = userPayloadDto.id;
     return this.wishesService.deleteWishProduct(userId, wishId, productId);
   }
 }

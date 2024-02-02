@@ -12,6 +12,8 @@ import { CouponsModule } from './coupons/coupons.module';
 import { NoticesModule } from './notices/notices.module';
 import { ProductsModule } from './products/products.module';
 import { TagsModule } from './tags/tags.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { AddressesModule } from './addresses/addresses.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { TagsModule } from './tags/tags.module';
     NoticesModule,
     ProductsModule,
     TagsModule,
+    UploadsModule,
+    AddressesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

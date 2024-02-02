@@ -37,7 +37,6 @@ export class UsersService {
     roles: number,
   ): Promise<User | undefined> {
     const queryRunner = await this.dataSource.createQueryRunner();
-    console.log(this.dataSource);
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {

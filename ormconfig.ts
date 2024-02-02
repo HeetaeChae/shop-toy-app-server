@@ -13,12 +13,15 @@ import { OrderProduct } from 'src/entities/OrderProduct.entity';
 import { Product } from 'src/entities/Product.entity';
 import { RecentlyViewedProduct } from 'src/entities/RecentlyViewedProduct.entity';
 import { Review } from 'src/entities/Review.entity';
-import { ReviewComment } from 'src/entities/ReviewComment';
+import { ReviewComment } from 'src/entities/ReviewComment.entity';
+import { ReviewThumbsup } from 'src/entities/ReviewThumbsup.entity';
 import { Search } from 'src/entities/Search.entity';
 import { Tag } from 'src/entities/Tag.entity';
+import { TagProduct } from 'src/entities/TagProduct.entity';
 import { User } from 'src/entities/User.entity';
 import { UserCoupon } from 'src/entities/UserCoupon.entity';
 import { Wish } from 'src/entities/Wish.entity';
+import { WishProduct } from 'src/entities/WishProduct.entity';
 
 dotenv.config();
 export const ormconfig: TypeOrmModuleOptions = {
@@ -48,6 +51,9 @@ export const ormconfig: TypeOrmModuleOptions = {
     UserCoupon,
     Wish,
     Category,
+    ReviewThumbsup,
+    TagProduct,
+    WishProduct,
   ],
   synchronize: true,
   autoLoadEntities: true,

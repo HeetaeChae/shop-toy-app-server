@@ -1,3 +1,4 @@
+import { PickType } from '@nestjs/swagger';
 import { Color } from 'src/enums/color.enum';
 import { IsApplied } from 'src/enums/is-applied.enum';
 import { Size } from 'src/enums/size.enum';
@@ -8,14 +9,12 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { BaseEntity } from './BaseEntity.entity';
 import { Order } from './Order.entity';
 import { Product } from './Product.entity';
 
 @Entity({ name: 'order_products' })
-export class OrderProduct {
-  @PrimaryGeneratedColumn()
-  id: number;
-
+export class OrderProduct extends BaseEntity {
   @Column({ default: 1 })
   quantity: number;
 
@@ -63,12 +62,14 @@ export class OrderProduct {
 
   @ManyToOne(() => Order, (order) => order.orderProducts, {
     onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
   })
   @JoinColumn({ name: 'order_id' })
   order: Order;
 
   @ManyToOne(() => Product, (product) => product.orderProducts, {
     onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
   })
   @JoinColumn({ name: 'product_id' })
   product: Product;

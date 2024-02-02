@@ -9,7 +9,8 @@ import { Order } from './Order.entity';
 import { Product } from './Product.entity';
 import { RecentlyViewedProduct } from './RecentlyViewedProduct.entity';
 import { Review } from './Review.entity';
-import { ReviewComment } from './ReviewComment';
+import { ReviewComment } from './ReviewComment.entity';
+import { ReviewThumbsup } from './ReviewThumbsup.entity';
 import { Search } from './Search.entity';
 import { UserCoupon } from './UserCoupon.entity';
 
@@ -42,11 +43,16 @@ export class User extends BaseEntity {
   @OneToMany(() => ReviewComment, (reviewComments) => reviewComments.user)
   reviewComments: ReviewComment[];
 
+  /*
   @ManyToMany(() => Review, (reviews) => reviews.users, {
     onDelete: 'CASCADE',
   })
   @JoinTable()
   reviews: Review[];
+  */
+
+  @OneToMany(() => ReviewThumbsup, (reviewThumbsups) => reviewThumbsups.user)
+  reviewThumbsups: ReviewThumbsup[];
 
   @OneToMany(() => Order, (orders) => orders.user)
   orders: Order[];

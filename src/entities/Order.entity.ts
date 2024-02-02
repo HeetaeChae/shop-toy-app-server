@@ -1,6 +1,5 @@
 import { PaymentType } from 'src/enums/payment-type.enum';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
-import { Address } from './Address.entity';
 import { BaseEntity } from './BaseEntity.entity';
 import { OrderProduct } from './OrderProduct.entity';
 import { User } from './User.entity';
@@ -33,15 +32,12 @@ export class Order extends BaseEntity {
   @Column({ name: 'receptor_phone', nullable: true })
   receptorPhone: string;
 
-  @ManyToOne(() => User, (user) => user.orders, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.orders, {
+    onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
+  })
   @JoinColumn({ name: 'user_id' })
   user: User;
-
-  @ManyToOne(() => Address, (address) => address.orders, {
-    onDelete: 'SET NULL',
-  })
-  @JoinColumn({ name: 'address_id' })
-  address: Address;
 
   @OneToMany(() => OrderProduct, (orderProducts) => orderProducts.order)
   orderProducts: OrderProduct[];

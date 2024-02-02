@@ -19,7 +19,7 @@ export class Notice extends BaseEntity {
   })
   isActive: IsActive;
 
-  @ManyToOne(() => User, (user) => user.notices)
+  @ManyToOne(() => User, (user) => user.notices, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 }

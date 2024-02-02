@@ -16,7 +16,7 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
     if (!token) {
-      throw new UnauthorizedException('로그인 되지 않았습니다.');
+      return false;
     }
     try {
       const payload = await this.jwtService.verifyAsync(token, {

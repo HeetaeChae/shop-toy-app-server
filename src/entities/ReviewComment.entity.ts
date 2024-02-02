@@ -10,12 +10,14 @@ export class ReviewComment extends BaseEntity {
 
   @ManyToOne(() => User, (user) => user.reviewComments, {
     onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
   })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
   @ManyToOne(() => Review, (review) => review.reviewComments, {
     onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
   })
   @JoinColumn({ name: 'review_id' })
   review: Review;

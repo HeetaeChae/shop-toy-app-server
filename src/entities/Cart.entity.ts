@@ -21,7 +21,7 @@ export class Cart extends BaseEntity {
   })
   checkedAt: Date;
 
-  @OneToOne(() => User, { onDelete: 'CASCADE' })
+  @OneToOne(() => User, { onDelete: 'CASCADE', cascade: ['soft-remove'] })
   @JoinColumn({ name: 'user_id' })
   user: User;
 

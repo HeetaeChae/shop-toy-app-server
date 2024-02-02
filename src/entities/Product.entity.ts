@@ -1,14 +1,7 @@
 import { Color } from 'src/enums/color.enum';
 import { Gender } from 'src/enums/gender.enum';
 import { Size } from 'src/enums/size.enum';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToMany,
-  ManyToOne,
-  OneToMany,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { BaseEntity } from './BaseEntity.entity';
 import { CartProduct } from './CartProduct.entity';
 import { Category } from './Category.entity';
@@ -16,9 +9,9 @@ import { Inquiry } from './Inquiry.entity';
 import { OrderProduct } from './OrderProduct.entity';
 import { RecentlyViewedProduct } from './RecentlyViewedProduct.entity';
 import { Review } from './Review.entity';
-import { Tag } from './Tag.entity';
+import { TagProduct } from './TagProduct.entity';
 import { User } from './User.entity';
-import { Wish } from './Wish.entity';
+import { WishProduct } from './WishProduct.entity';
 
 @Entity({ name: 'products' })
 export class Product extends BaseEntity {
@@ -61,7 +54,10 @@ export class Product extends BaseEntity {
   @Column({ name: 'img_url_5', type: 'text', nullable: true })
   imgUrl5: string;
 
-  @ManyToOne(() => User, (user) => user.products, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.products, {
+    onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
+  })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
@@ -77,8 +73,13 @@ export class Product extends BaseEntity {
   @OneToMany(() => Inquiry, (inquiries) => inquiries.product)
   inquiries: Inquiry;
 
+  /*
   @ManyToMany(() => Tag, (tags) => tags.products, { onDelete: 'CASCADE' })
   tags: Tag[];
+  */
+
+  @OneToMany(() => TagProduct, (tagProducts) => tagProducts.product)
+  tagProducts: TagProduct[];
 
   @OneToMany(
     () => RecentlyViewedProduct,
@@ -86,10 +87,15 @@ export class Product extends BaseEntity {
   )
   recentlyViewedProducts: RecentlyViewedProduct[];
 
+  /*
   @ManyToMany(() => Wish, (wishes) => wishes.products, {
     onDelete: 'CASCADE',
   })
   wishes: Wish[];
+  */
+
+  @OneToMany(() => WishProduct, (wishProducts) => wishProducts.product)
+  wishProducts: WishProduct[];
 
   @ManyToOne(() => Category, (category) => category.products, {
     onDelete: 'SET NULL',

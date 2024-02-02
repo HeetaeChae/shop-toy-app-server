@@ -1,7 +1,6 @@
 import { IsPrimary } from 'src/enums/is-primary.enum';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { BaseEntity } from './BaseEntity.entity';
-import { Order } from './Order.entity';
 import { User } from './User.entity';
 
 @Entity({ name: 'addresses' })
@@ -27,10 +26,10 @@ export class Address extends BaseEntity {
   @Column({ type: 'enum', enum: IsPrimary, default: IsPrimary.NOTPRIMARY })
   is_primary: IsPrimary;
 
-  @ManyToOne(() => User, (user) => user.addresses, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.addresses, {
+    onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
+  })
   @JoinColumn({ name: 'user_id' })
   user: User;
-
-  @OneToMany(() => Order, (orders) => orders.address)
-  orders: Order[];
 }

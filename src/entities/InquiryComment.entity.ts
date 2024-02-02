@@ -10,12 +10,14 @@ export class InquiryComment extends BaseEntity {
 
   @ManyToOne(() => Inquiry, (inquiry) => inquiry.inquiryComments, {
     onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
   })
   @JoinColumn({ name: 'inquiry_id' })
   inquiry: Inquiry;
 
   @ManyToOne(() => User, (user) => user.inquiryComments, {
     onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
   })
   @JoinColumn({ name: 'user_id' })
   user: User;

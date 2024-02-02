@@ -1,14 +1,15 @@
-import { Entity, JoinColumn, JoinTable, ManyToMany, OneToOne } from 'typeorm';
+import { Entity, JoinColumn, OneToMany, OneToOne } from 'typeorm';
 import { BaseEntity } from './BaseEntity.entity';
-import { Product } from './Product.entity';
 import { User } from './User.entity';
+import { WishProduct } from './WishProduct.entity';
 
 @Entity({ name: 'wishes' })
 export class Wish extends BaseEntity {
-  @OneToOne(() => User, { onDelete: 'CASCADE' })
+  @OneToOne(() => User, { onDelete: 'CASCADE', cascade: ['soft-remove'] })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
+  /*
   @ManyToMany(() => Product, (products) => products.wishes, {
     onDelete: 'CASCADE',
   })
@@ -18,4 +19,8 @@ export class Wish extends BaseEntity {
     inverseJoinColumn: { name: 'product_id' },
   })
   products: Product[];
+  */
+
+  @OneToMany(() => WishProduct, (wishProducts) => wishProducts.wish)
+  wishProducts: WishProduct[];
 }

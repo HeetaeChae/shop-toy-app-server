@@ -4,7 +4,7 @@ import { IsNumber, IsString } from 'class-validator';
 export class CreateTagProductDto {
   @ApiProperty({ example: '겨울상품', description: '태그 이름' })
   @IsString()
-  name: string;
+  tagName: string;
 
   @ApiProperty({ example: 1, description: '상품 id' })
   @IsNumber()

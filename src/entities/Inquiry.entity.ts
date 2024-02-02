@@ -21,12 +21,16 @@ export class Inquiry extends BaseEntity {
   })
   isSecret: IsSecret;
 
-  @ManyToOne(() => User, (user) => user.inquiries, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.inquiries, {
+    onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
+  })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
   @ManyToOne(() => Product, (product) => product.inquiries, {
     onDelete: 'CASCADE',
+    cascade: ['soft-remove'],
   })
   @JoinColumn({ name: 'product_id' })
   product: User;
