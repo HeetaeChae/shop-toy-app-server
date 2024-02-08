@@ -11,14 +11,6 @@ export class Coupon extends BaseEntity {
   @Column({ default: 0 })
   discountAmount: number;
 
-  @Column({
-    name: 'is_active',
-    type: 'enum',
-    enum: IsActive,
-    default: IsActive.ACTIVE,
-  })
-  isActive: IsActive;
-
   @OneToMany(() => UserCoupon, (userCoupons) => userCoupons.coupon)
   userCoupons: UserCoupon[];
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Post,
   UseGuards,
@@ -53,7 +54,7 @@ export class AuthController {
     description: '페이로드 id와 password로 계정 삭제 기능',
   })
   @UseGuards(LoggedInGuard)
-  @Post('delete-account')
+  @Delete('delete-account')
   async deleteAccount(
     @UserPayload() userPayloadDto: UserPayloadDto,
     @Body() deleteAccountDto: DeleteAccountDto,

@@ -2,6 +2,7 @@
 import {
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
@@ -44,11 +45,11 @@ export class AuthService {
   async login(email: string, pass: string) {
     const user = await this.usersService.getUserByEmail(email);
     if (!user) {
-      throw new UnauthorizedException('해당 유저가 존재하지 않습니다.');
+      throw new NotFoundException('해당 유저가 존재하지 않습니다.');
     }
     const isPasswordValid = await bcrypt.compare(pass, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('비밀번호가 다릅니다.');
+      throw new NotFoundException('비밀번호가 다릅니다.');
     }
     const payload = { id: user.id, email: user.email, roles: user.roles };
     return { access_token: await this.jwtService.signAsync(payload) };
@@ -57,7 +58,7 @@ export class AuthService {
   async checkAuthState(id: number) {
     const user = await this.usersService.getUserById(id);
     if (!user) {
-      throw new UnauthorizedException('해당 유저가 존재하지 않습니다.');
+      throw new NotFoundException('해당 유저가 존재하지 않습니다.');
     }
     const { password, ...result } = user;
     return result;
@@ -66,11 +67,11 @@ export class AuthService {
   async deleteAccount(id: number, pass: string) {
     const user = await this.usersService.getUserById(id);
     if (!user) {
-      throw new UnauthorizedException('해당 유저가 존재하지 않습니다.');
+      throw new NotFoundException('해당 유저가 존재하지 않습니다.');
     }
     const isPasswordValid = await bcrypt.compare(pass, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('비밀번호를 틀렸습니다.');
+      throw new NotFoundException('비밀번호를 틀렸습니다.');
     }
     this.usersService.deleteUserById(user.id);
   }

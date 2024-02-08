@@ -9,12 +9,11 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { LoggedInGuard } from 'src/auth/auth-status.guard';
 import { UserId } from 'src/decorators/user-id.decorator';
 import { AddressesService } from './addresses.service';
 import { CreateAddressDto } from './dto/create-address.dto';
-import { UpdateAddressStatusDto } from './dto/update-address-status.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
 
 @ApiTags('addresses')
@@ -23,6 +22,10 @@ export class AddressesController {
   constructor(private addressesService: AddressesService) {}
 
   // 내 주소 목록 가져오기
+  @ApiOperation({
+    summary: '주소 목록 가져오기',
+    description: '내 주소 목록 가져오기',
+  })
   @UseGuards(LoggedInGuard)
   @Get('')
   async getAddresses(@UserId() userId: number) {
@@ -30,6 +33,10 @@ export class AddressesController {
   }
 
   // 특정 주소 가져오기
+  @ApiOperation({
+    summary: '특정 주소 가져오기',
+    description: '특정 주소 가져오기',
+  })
   @UseGuards(LoggedInGuard)
   @Get(':id')
   async getAddress(
@@ -40,6 +47,10 @@ export class AddressesController {
   }
 
   // 주소 등록하기
+  @ApiOperation({
+    summary: '주소 등록하기',
+    description: '주소 정보 등록하기',
+  })
   @UseGuards(LoggedInGuard)
   @Post('')
   async createAddress(
@@ -66,11 +77,15 @@ export class AddressesController {
   }
 
   // 주소 수정하기
+  @ApiOperation({
+    summary: '주소 수정하기',
+    description: '주소 정보 수정하기',
+  })
   @UseGuards(LoggedInGuard)
-  @Post(':id')
+  @Patch(':id')
   async updateAddress(
     @UserId() userId: number,
-    @Param(ParseIntPipe) addressId: number
+    @Param(ParseIntPipe) addressId: number,
     @Body(ValidationPipe) updateAddressDto: UpdateAddressDto,
   ) {
     const {
@@ -94,13 +109,19 @@ export class AddressesController {
   }
 
   // 주소 대표여부 변경하기
+  @ApiOperation({
+    summary: '주소 대표여부 변경하기',
+    description: '주소 대표여부 변경하기',
+  })
   @UseGuards(LoggedInGuard)
-  @Patch('')
+  @Patch(':id')
   async updateAddressPrimaryStatus(
     @UserId() userId: number,
-    @Body(ValidationPipe) updateAddressStatusDto: UpdateAddressStatusDto,
+    @Param('id', ParseIntPipe) addressId: number,
   ) {
-    const { isPrimary } = updateAddressStatusDto;
-    return this.addressesService.updateAddressPrimaryStatus(userId, isPrimary);
+    return this.addressesService.updateAddressPrimaryStatus(userId, addressId);
   }
+
+  // 주소 삭제
+  // @ApiOperation({})
 }

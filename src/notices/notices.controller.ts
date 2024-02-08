@@ -2,6 +2,10 @@ import {
   Body,
   Controller,
   ForbiddenException,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -10,6 +14,7 @@ import { LoggedInGuard } from 'src/auth/auth-status.guard';
 import { IsAdminRoles } from 'src/decorators/is-admin-roles.decorator';
 import { UserId } from 'src/decorators/user-id.decorator';
 import { CreateNoticeDto } from './dto/create-notice.dto';
+import { UpdateNoticeDto } from './dto/update-notice-dto';
 import { NoticesService } from './notices.service';
 
 @Controller('notices')
@@ -32,5 +37,47 @@ export class NoticesController {
     }
     const { title, content, isActive } = createNoticeDto;
     return this.noticesService.createNotice(userId, title, content, isActive);
+  }
+
+  @ApiOperation({ summary: '공지사항 수정', description: '공지사항 수정 기능' })
+  @Patch(':id')
+  @UseGuards(LoggedInGuard)
+  async updateNotice(
+    @UserId() userId: number,
+    @Param('id', ParseIntPipe) noticeId: number,
+    @IsAdminRoles() isAdminRoles: boolean,
+    @Body() updateNoticeDto: UpdateNoticeDto,
+  ) {
+    if (!isAdminRoles) {
+      throw new ForbiddenException(
+        '어드민 계정만 공지사항을 생성할 수 있습니다.',
+      );
+    }
+    const { title, content, isActive } = updateNoticeDto;
+    return this.noticesService.updateNotice(
+      userId,
+      noticeId,
+      title,
+      content,
+      isActive,
+    );
+  }
+
+  @ApiOperation({
+    summary: '공지사항 가져오기',
+    description: '모든 공지사항 가져오기 기능',
+  })
+  @Get()
+  async getNotices() {
+    return this.noticesService.getNotices();
+  }
+
+  @ApiOperation({
+    summary: '공지사항 가져오기',
+    description: '특정 공지사항 가져오기 기능',
+  })
+  @Get(':id')
+  async getNotice(@Param('id', ParseIntPipe) noticeId: number) {
+    return this.noticesService.getNotice(noticeId);
   }
 }

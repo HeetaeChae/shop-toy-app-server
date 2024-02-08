@@ -14,6 +14,8 @@ import { ProductsModule } from './products/products.module';
 import { TagsModule } from './tags/tags.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { AddressesModule } from './addresses/addresses.module';
+import { RecentlyViewedProductsModule } from './recently-viewed-products/recently-viewed-products.module';
+import { SearchesModule } from './searches/searches.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { AddressesModule } from './addresses/addresses.module';
     TagsModule,
     UploadsModule,
     AddressesModule,
+    RecentlyViewedProductsModule,
+    SearchesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

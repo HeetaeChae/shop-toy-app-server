@@ -6,25 +6,25 @@ import { User } from './User.entity';
 @Entity({ name: 'addresses' })
 export class Address extends BaseEntity {
   @Column({ type: 'text' })
-  zip_code: string;
+  zipCode: string;
 
   @Column({ type: 'text' })
-  street_address: string;
+  streetAddress: string;
 
   @Column()
-  address_name: string;
+  addressName: string;
 
   @Column()
-  receptor_name: string;
+  receptorName: string;
 
   @Column()
-  receptor_mobile: string;
+  receptorMobile: string;
 
   @Column({ nullable: true })
-  receptor_phone: string;
+  receptorPhone: string;
 
   @Column({ type: 'enum', enum: IsPrimary, default: IsPrimary.NOTPRIMARY })
-  is_primary: IsPrimary;
+  isPrimary: IsPrimary;
 
   @ManyToOne(() => User, (user) => user.addresses, {
     onDelete: 'CASCADE',

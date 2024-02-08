@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ import { LoggedInGuard } from 'src/auth/auth-status.guard';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { IsAdminRoles } from 'src/decorators/is-admin-roles.decorator';
 import { UserId } from 'src/decorators/user-id.decorator';
+import { CouponOrderBy, CouponOrderName } from 'src/enums/coupon-order.enum';
 import { CouponsService } from './coupons.service';
 import { CreateCouponDto } from './dto/create-coupon.dto';
 import { UpdateCouponStatusDto } from './dto/update-coupon-status.dto';
@@ -32,8 +34,13 @@ export class CouponsController {
     description: '모든 쿠폰 가져오기 기능',
   })
   @Get()
-  async getCoupons() {
-    return this.couponsService.getCoupons();
+  async getCoupons(
+    @Query('page') page: number = 1,
+    @Query('pageSize') pageSize: number = 20,
+    @Query('orderName') orderName: CouponOrderName = CouponOrderName.CREATED_AT,
+    @Query('orderBy') orderBy: CouponOrderBy = CouponOrderBy.DESC,
+  ) {
+    return this.couponsService.getCoupons(page, pageSize, orderName, orderBy);
   }
 
   // 유저 모든쿠폰 가져오기
@@ -43,8 +50,20 @@ export class CouponsController {
   })
   @UseGuards(LoggedInGuard)
   @Get('user-coupons')
-  async getUserCoupons(@UserId() id: number) {
-    return this.couponsService.getUserCoupons(id);
+  async getUserCoupons(
+    @UserId() userId: number,
+    @Query('page') page: number = 1,
+    @Query('pageSize') pageSize: number = 20,
+    @Query('orderName') orderName: CouponOrderName = CouponOrderName.CREATED_AT,
+    @Query('orderBy') orderBy: CouponOrderBy = CouponOrderBy.DESC,
+  ) {
+    return this.couponsService.getUserCoupons(
+      userId,
+      page,
+      pageSize,
+      orderName,
+      orderBy,
+    );
   }
 
   // 유저 쿠폰 가져오기
@@ -74,27 +93,6 @@ export class CouponsController {
     }
     const { name, discountAmount } = createCouponDto;
     return this.couponsService.createCoupon(name, discountAmount);
-  }
-
-  // 쿠폰 사용가능 여부 변경
-  @UseGuards(LoggedInGuard)
-  @ApiOperation({
-    summary: '쿠폰 사용가능 여부 변경',
-    description: '쿠폰 사용가능 여부 변경 기능 (0: 비활성, 1: 활성)',
-  })
-  @Patch(':id')
-  async updateCoupon(
-    @IsAdminRoles() isAdminRoles: boolean,
-    @Param('id', ParseIntPipe) couponId: number,
-    @Body() updateCouponStatusDto: UpdateCouponStatusDto,
-  ) {
-    if (!isAdminRoles) {
-      throw new ForbiddenException(
-        '어드민 계정만 쿠폰 사용가능 여부를 변경할 수 있습니다.',
-      );
-    }
-    const { isActive } = updateCouponStatusDto;
-    return this.couponsService.updateCouponActivateStatus(couponId, isActive);
   }
 
   // 쿠폰 삭제

@@ -38,8 +38,8 @@ export class UsersService {
   ): Promise<User | undefined> {
     const queryRunner = await this.dataSource.createQueryRunner();
     await queryRunner.connect();
-    await queryRunner.startTransaction();
     try {
+      await queryRunner.startTransaction();
       // 유저 생성
       const newUser = await this.userRepository.create({
         email,
@@ -52,7 +52,9 @@ export class UsersService {
       await this.wishesService.createWish(savedUser);
       // 장바구니 생성
       await this.cartsService.creatCart(savedUser);
+      await queryRunner.commitTransaction();
       return savedUser;
+      // 유저 리턴 ?
     } catch (error) {
       await queryRunner.rollbackTransaction();
     } finally {

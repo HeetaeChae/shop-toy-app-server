@@ -1,4 +1,7 @@
 import { PickType } from '@nestjs/swagger';
+import { IsEnum } from 'class-validator';
+import { Color } from 'src/enums/color.enum';
+import { Size } from 'src/enums/size.enum';
 import {
   Column,
   Entity,
@@ -17,6 +20,14 @@ export class CartProduct extends BaseEntity {
 
   @Column()
   quantity: number;
+
+  @Column()
+  @IsEnum(Color)
+  color: Color;
+
+  @Column()
+  @IsEnum(Size)
+  size: Size;
 
   @ManyToOne(() => Cart, (cart) => cart.cartProducts, {
     onDelete: 'CASCADE',
