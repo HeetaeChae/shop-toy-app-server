@@ -14,13 +14,11 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { LoggedInGuard } from 'src/auth/auth-status.guard';
-import { AuthGuard } from 'src/auth/auth.guard';
 import { IsAdminRoles } from 'src/decorators/is-admin-roles.decorator';
 import { UserId } from 'src/decorators/user-id.decorator';
 import { CouponOrderBy, CouponOrderName } from 'src/enums/coupon-order.enum';
 import { CouponsService } from './coupons.service';
 import { CreateCouponDto } from './dto/create-coupon.dto';
-import { UpdateCouponStatusDto } from './dto/update-coupon-status.dto';
 import { UpdateUserCouponStatusDto } from './dto/update-user-coupon-status.dto';
 
 @Controller('coupons')
@@ -114,7 +112,7 @@ export class CouponsController {
     summary: '유저 쿠폰 생성(등록)',
     description: '유저 쿠폰 생성(등록) 기능',
   })
-  @UseGuards(AuthGuard)
+  @UseGuards(LoggedInGuard)
   @Post(':id/user-coupons')
   async createUserCoupon(
     @UserId() userId: number,
@@ -128,7 +126,7 @@ export class CouponsController {
     summary: '유저 쿠폰 사용여부 변경',
     description: '유저 쿠폰 사용여부 변경 기능 (0: 미사용, 1: 사용)',
   })
-  @UseGuards(AuthGuard)
+  @UseGuards(LoggedInGuard)
   @Patch(':id/user-coupons')
   async updateUserCoupon(
     @UserId() userId: number,

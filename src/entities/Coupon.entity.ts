@@ -8,9 +8,13 @@ export class Coupon extends BaseEntity {
   @Column({ unique: true })
   name: string;
 
-  @Column({ default: 0 })
+  @Column({ name: 'discount_amount', default: 0 })
   discountAmount: number;
 
+  @Column({ name: 'expiry_period', default: 7 })
+  expiryPeriod: number;
+
+  @Column({ name: '' })
   @OneToMany(() => UserCoupon, (userCoupons) => userCoupons.coupon)
   userCoupons: UserCoupon[];
 }

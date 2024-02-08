@@ -16,6 +16,8 @@ import { UploadsModule } from './uploads/uploads.module';
 import { AddressesModule } from './addresses/addresses.module';
 import { RecentlyViewedProductsModule } from './recently-viewed-products/recently-viewed-products.module';
 import { SearchesModule } from './searches/searches.module';
+import { ReviewModule } from './review/review.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { SearchesModule } from './searches/searches.module';
     AddressesModule,
     RecentlyViewedProductsModule,
     SearchesModule,
+    ReviewModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
