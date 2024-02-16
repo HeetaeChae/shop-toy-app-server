@@ -1,5 +1,6 @@
 import { PickType } from '@nestjs/swagger';
 import {
+  Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
@@ -15,6 +16,9 @@ import { User } from './User.entity';
 export class RecentlyViewedProduct extends BaseEntity {
   @CreateDateColumn({ name: 'viewed_at' })
   viewedAt: Date;
+
+  @Column({ name: 'product_id_for_grouping' })
+  productIdForGrouping: number;
 
   @ManyToOne(() => User, (user) => user.recentlyViewedProducts, {
     onDelete: 'CASCADE',

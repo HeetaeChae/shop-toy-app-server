@@ -37,8 +37,8 @@ export class WishesController {
     @UserId() userId: number,
     @Body() createWishProductDto: CreateWishProductDto,
   ) {
-    const { wishId, productId } = createWishProductDto;
-    return this.wishesService.createWishProduct(userId, wishId, productId);
+    const { productId } = createWishProductDto;
+    return this.wishesService.createWishProduct(userId, productId);
   }
 
   @ApiOperation({
@@ -46,12 +46,9 @@ export class WishesController {
     description: '내가 찜한 모든 상품 삭제 기능',
   })
   @UseGuards(LoggedInGuard)
-  @Delete(':id/wish-products')
-  async deleteWishProducts(
-    @UserId() userId: number,
-    @Param('id') wishId: number,
-  ) {
-    return this.wishesService.deleteWishProducts(userId, wishId);
+  @Delete('wish-products')
+  async deleteWishProducts(@UserId() userId: number) {
+    return this.wishesService.deleteWishProducts(userId);
   }
 
   @ApiOperation({
@@ -59,12 +56,11 @@ export class WishesController {
     description: '내가 찜한 특정 상품 삭제 기능',
   })
   @UseGuards(LoggedInGuard)
-  @Delete(':id/products/:id/wish-products')
+  @Delete('wish-products/:id')
   async deleteWishProduct(
     @UserId() userId: number,
-    @Param('id') wishId: number,
-    @Param('id') productId: number,
+    @Param('id') wishProductId: number,
   ) {
-    return this.wishesService.deleteWishProduct(userId, wishId, productId);
+    return this.wishesService.deleteWishProduct(userId, wishProductId);
   }
 }

@@ -22,14 +22,6 @@ export class UserCoupon extends BaseEntity {
   })
   isUsed: IsUsed;
 
-  @Column({
-    name: 'is_active',
-    type: 'enum',
-    enum: IsActive,
-    default: IsActive.ACTIVE,
-  })
-  isActive: IsActive;
-
   @Column({ name: 'expired_at', type: 'timestamp' })
   expiredAt: Date;
 

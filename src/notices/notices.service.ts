@@ -2,13 +2,13 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Notice } from 'src/entities/Notice.entity';
+import { User } from 'src/entities/User.entity';
 import { IsActive } from 'src/enums/is-active.enum';
 import { UsersService } from 'src/users/users.service';
-import { Repository } from 'typeorm';
+import { Repository, UpdateResult } from 'typeorm';
 
 @Injectable()
 export class NoticesService {
@@ -17,16 +17,36 @@ export class NoticesService {
     private usersService: UsersService,
   ) {}
 
+  async checkIsOwnNotice(
+    user: User,
+    noticeId: number,
+  ): Promise<void | undefined> {
+    const ownNotice = await this.noticeRepository.findOne({
+      where: { id: noticeId, user },
+    });
+    if (!ownNotice) {
+      throw new ForbiddenException('내가 작성한 공지사항이 아닙니다.');
+    }
+  }
+
+  async getNotices(): Promise<Notice[] | undefined> {
+    return this.noticeRepository.find({ relations: ['user'] });
+  }
+
+  async getNotice(noticeId: number): Promise<Notice> {
+    return this.noticeRepository.findOne({
+      where: { id: noticeId },
+      relations: ['user'],
+    });
+  }
+
   async createNotice(
     userId: number,
     title: string,
     content: string,
     isActive: IsActive,
-  ) {
+  ): Promise<Notice | undefined> {
     const user = await this.usersService.getUserById(userId);
-    if (!user) {
-      throw new NotFoundException('계정을 찾을 수 없습니다.');
-    }
     const newNotice = await this.noticeRepository.create({
       user,
       title,
@@ -42,17 +62,9 @@ export class NoticesService {
     title: string,
     content: string,
     isActive: IsActive,
-  ) {
+  ): Promise<UpdateResult | undefined> {
     const user = await this.usersService.getUserById(userId);
-    if (!user) {
-      throw new NotFoundException('계정을 찾을 수 없습니다.');
-    }
-    const updatedToAddress = await this.noticeRepository.findOne({
-      where: { id: noticeId },
-    });
-    if (updatedToAddress.user.id !== userId) {
-      throw new ForbiddenException('해당 공지사항의 작성자가 아닙니다.');
-    }
+    await this.checkIsOwnNotice(user, noticeId);
     const updatedAddress = await this.noticeRepository.update(noticeId, {
       title,
       content,
@@ -62,13 +74,5 @@ export class NoticesService {
       throw new NotFoundException('공지사항을 업데이트할 수 없습니다.');
     }
     return updatedAddress;
-  }
-
-  async getNotices() {
-    return this.noticeRepository.find();
-  }
-
-  async getNotice(noticeId: number) {
-    return this.noticeRepository.findOne({ where: { id: noticeId } });
   }
 }

@@ -19,13 +19,14 @@ import { UpdateCartProductDto } from './dto/update-cart-product.dto';
 @Controller('carts')
 export class CartsController {
   constructor(private cartsService: CartsService) {}
+
   // 장바구니 상품 가져오기
   @ApiOperation({
     summary: '장바구니 상품 가져오기',
     description: '장바구니 상품 가져오기 기능',
   })
   @UseGuards(LoggedInGuard)
-  @Get('/cart-product')
+  @Get('/cart-products')
   async getCartProducts(@UserId() userId: number) {
     return this.cartsService.getCartProducts(userId);
   }
@@ -36,9 +37,9 @@ export class CartsController {
     description: '장바구니 체크 처리 기능',
   })
   @UseGuards(LoggedInGuard)
-  @Patch(':id/check')
-  async checkCart(@UserId() userId: number, @Param('id') cartId: number) {
-    return this.cartsService.checkCart(userId, cartId);
+  @Patch('/check')
+  async checkCart(@UserId() userId: number) {
+    return this.cartsService.checkCart(userId);
   }
 
   // 장바구니 상품 등록
@@ -47,15 +48,14 @@ export class CartsController {
     description: '장바구니 상품 등록 기능',
   })
   @UseGuards(LoggedInGuard)
-  @Post('/cart-product')
+  @Post('/cart-products')
   async createCartProduct(
     @UserId() userId: number,
     @Body() createCartProductDto: CreateCartProductDto,
   ) {
-    const { cartId, productId, quantity, size, color } = createCartProductDto;
+    const { productId, quantity, size, color } = createCartProductDto;
     return this.cartsService.createCartProduct({
       userId,
-      cartId,
       productId,
       quantity,
       size,
@@ -69,17 +69,15 @@ export class CartsController {
     description: '장바구니 상품 수정 기능',
   })
   @UseGuards(LoggedInGuard)
-  @Patch(':id/cart-product/:id')
+  @Patch('cart-products/:id')
   async updateCartProduct(
     @UserId() userId: number,
-    @Param('id') cartId: number,
     @Param('id') cartProductId: number,
     @Body() updateCartProductDto: UpdateCartProductDto,
   ) {
     const { quantity, size, color } = updateCartProductDto;
     return this.cartsService.updateCartProduct({
       userId,
-      cartId,
       cartProductId,
       quantity,
       size,
@@ -93,12 +91,11 @@ export class CartsController {
     description: '장바구니 상품 삭제 기능',
   })
   @UseGuards(LoggedInGuard)
-  @Delete(':id/cart-product/:id')
+  @Delete('cart-products/:id')
   async deleteCartProduct(
     @UserId() userId: number,
-    @Param('id') cartId: number,
     @Param('id') cartProductId: number,
   ) {
-    return this.cartsService.deleteCartProduct(userId, cartId, cartProductId);
+    return this.cartsService.deleteCartProduct(userId, cartProductId);
   }
 }

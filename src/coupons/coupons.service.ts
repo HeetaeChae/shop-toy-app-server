@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -9,9 +10,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Coupon } from 'src/entities/Coupon.entity';
 import { UserCoupon } from 'src/entities/UserCoupon.entity';
-import { IsActive } from 'src/enums/is-active.enum';
 import { IsUsed } from 'src/enums/is-used.enum';
-import { Repository } from 'typeorm';
+import { Repository, UpdateResult } from 'typeorm';
 import * as dayjs from 'dayjs';
 import { UsersService } from 'src/users/users.service';
 import { CouponOrderBy, CouponOrderName } from 'src/enums/coupon-order.enum';
@@ -28,12 +28,30 @@ export class CouponsService {
 
   // 쿠폰 이름으로 가져오기
   async getCouponByName(name: string): Promise<Coupon | undefined> {
-    return await this.couponsRepository.findOneBy({ name });
+    const coupon = await this.couponsRepository.findOneBy({ name });
+    if (!coupon) {
+      throw new NotFoundException('쿠폰을 찾을 수 없습니다.');
+    }
+    return coupon;
   }
 
   // 쿠폰 id로 가져오기
   async getCoponById(id: number): Promise<Coupon | undefined> {
-    return await this.couponsRepository.findOne({ where: { id } });
+    const coupon = await this.couponsRepository.findOne({ where: { id } });
+    if (!coupon) {
+      throw new NotFoundException('쿠폰을 찾을 수 없습니다.');
+    }
+    return coupon;
+  }
+
+  async getUserCouponById(id: number): Promise<UserCoupon | undefined> {
+    const userCoupon = await this.userCouponRepository.findOne({
+      where: { id },
+    });
+    if (!userCoupon) {
+      throw new NotFoundException('유저의 쿠폰을 찾을 수 없습니다.');
+    }
+    return userCoupon;
   }
 
   // 모든 쿠폰 가져오기
@@ -54,6 +72,7 @@ export class CouponsService {
   async createCoupon(
     name: string,
     discountAmount: number,
+    expiryPeriod: number,
   ): Promise<Coupon | undefined> {
     // 쿠폰 존재여부 확인
     const existingCoupon = await this.getCouponByName(name);
@@ -64,12 +83,17 @@ export class CouponsService {
     const newCoupon = await this.couponsRepository.create({
       name,
       discountAmount,
+      expiryPeriod,
     });
-    return this.couponsRepository.save(newCoupon);
+    const savedCoupon = await this.couponsRepository.save(newCoupon);
+    if (!savedCoupon) {
+      throw new ForbiddenException('쿠폰을 생성할 수 없습니다.');
+    }
+    return savedCoupon;
   }
 
   // 쿠폰 삭제
-  async deleteCoupon(couponId: number): Promise<void> {
+  async deleteCoupon(couponId: number): Promise<UpdateResult | undefined> {
     // 쿠폰 삭제
     const deletedCoupon = await this.couponsRepository.softDelete({
       id: couponId,
@@ -78,10 +102,7 @@ export class CouponsService {
     if (deletedCoupon.affected === 0) {
       throw new NotFoundException('쿠폰이 존재하지 않습니다.');
     }
-  }
-
-  async getUserCouponById(id: number) {
-    return this.userCouponRepository.findOne({ where: { id } });
+    return deletedCoupon;
   }
 
   // 모든 유저 쿠폰 가져오기
@@ -94,7 +115,7 @@ export class CouponsService {
   ): Promise<Coupon[] | undefined> {
     return this.couponsRepository
       .createQueryBuilder('coupon')
-      .leftJoinAndSelect('coupon.userCoupons', 'userCoupons')
+      .innerJoin('coupon.userCoupons', 'userCoupons')
       .innerJoin('userCoupons.user', 'user')
       .where('user.id = :userId', { userId })
       .skip((page - 1) * pageSize)
@@ -103,6 +124,7 @@ export class CouponsService {
       .getMany();
   }
 
+  // 특정 유저 쿠폰 가져오기
   async getUserCoupon(userId: number, userCouponId: number) {
     const user = await this.usersService.getUserById(userId);
     const userCoupon = await this.userCouponRepository.findOne({
@@ -114,56 +136,55 @@ export class CouponsService {
     return userCoupon;
   }
 
+  // 유저쿠폰 생성
   async createUserCoupon(
     userId: number,
     couponId: number,
   ): Promise<UserCoupon | undefined> {
     const user = await this.usersService.getUserById(userId);
-    if (!user) {
-      throw new NotFoundException('존재하는 유저가 아닙니다.');
-    }
     const coupon = await this.getCoponById(couponId);
-    if (!coupon) {
-      throw new NotFoundException('쿠폰이 존재하지 않습니다.');
-    }
-    const existingUserCoupon = await this.userCouponRepository.find({
+    const existingUserCoupon = await this.userCouponRepository.findOne({
       where: { user, coupon },
     });
     if (existingUserCoupon) {
       throw new ConflictException('동일한 쿠폰을 이미 발급받았습니다.');
     }
+    // coupon의 expiryPeriod만큼의 일수를 현재시간에서 더한 날짜의 정오 1초 전 (23시 59분 59초)을 계산하는 방법
+    const expiredAt = dayjs()
+      .add(coupon.expiryPeriod, 'day')
+      .endOf('day')
+      .toDate();
     // 쿠폰 생성후 리턴
     const newUserCoupon = await this.userCouponRepository.create({
       isUsed: IsUsed.NOTUSED,
-      isActive: IsActive.ACTIVE,
-      expiredAt: dayjs().add(7, 'days').toDate(),
+      expiredAt,
       user,
       coupon,
     });
     return this.userCouponRepository.save(newUserCoupon);
   }
 
+  // 유저쿠폰 사용여부 변경
   async updateUserCouponUsageStatus(
     userId: number,
     couponId: number,
     isUsed: IsUsed,
-  ) {
+  ): Promise<UpdateResult | undefined> {
     const user = await this.usersService.getUserById(userId);
-    if (!user) {
-      throw new NotFoundException('존재하는 유저가 아닙니다.');
-    }
     const coupon = await this.getCoponById(couponId);
-    if (!coupon) {
-      throw new NotFoundException('쿠폰이 존재하지 않습니다.');
-    }
     const userCoupon = await this.userCouponRepository.findOne({
       where: { user, coupon },
     });
     if (!userCoupon) {
       throw new NotFoundException('쿠폰이 존재하지 않습니다.');
     }
-    // 쿠폰 사용여부 업데이트 후 리턴
-    userCoupon.isUsed = isUsed;
-    return this.userCouponRepository.save(userCoupon);
+    const updatedUserCoupon = await this.userCouponRepository.update(
+      userCoupon.id,
+      { isUsed },
+    );
+    if (updatedUserCoupon.affected === 0) {
+      throw new ForbiddenException('쿠폰 사용 여부를 변경할 수 없습니다.');
+    }
+    return updatedUserCoupon;
   }
 }

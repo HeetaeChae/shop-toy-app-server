@@ -1,41 +1,45 @@
-import { Injectable, Post, UseInterceptors } from '@nestjs/common';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as AWS from 'aws-sdk';
+import { v1 as uuid } from 'uuid';
 
 @Injectable()
 export class UploadsService {
-  private readonly s3;
-
+  s3Client: S3Client;
   constructor(private configService: ConfigService) {
-    configService = this.configService;
-    AWS.config.update({
-      region: configService.get('AWS_REGION'),
+    this.s3Client = new S3Client({
+      region: this.configService.get('AWS_REGION'),
       credentials: {
-        accessKeyId: configService.get('AWS_ACCESS_KEY'),
-        secretAccessKey: configService.get('AWS_SECRET_KEY'),
+        accessKeyId: this.configService.get('AWS_S3_ACCESS_KEY'),
+        secretAccessKey: this.configService.get('AWS_S3_SECRET_ACCESS_KEY'),
       },
     });
-    this.s3 = new AWS.S3();
   }
 
-  async uploadImage(files: Express.Multer.File[]) {
-    const uploadedImage = await Promise.all(
-      files.map(async (file) => {
-        const key = `${Date.now() + file.originalname}`;
-        const params = {
-          Bucket: this.configService.get('AWS_BUCKET_NAME'),
-          ACL: this.configService.get('AWS_ACL'),
-          Key: key,
-          Body: file.buffer,
-        };
-        return new Promise((resolve, reject) => {
-          this.s3.putObject(params, (err, data) => {
-            if (err) reject(err);
-            resolve(key);
-          });
-        });
-      }),
+  async uploadImageToS3(
+    fileName: string,
+    file: Express.Multer.File,
+    ext: string,
+  ): Promise<String | undefined> {
+    const command = new PutObjectCommand({
+      Bucket: this.configService.get('AWS_S3_BUCKET_NAME'),
+      Key: fileName,
+      Body: file.buffer,
+      ACL: 'public-read',
+      ContentType: `image/${ext}`,
+    });
+    await this.s3Client.send(command);
+    return `http://s3.${process.env.AWS_REGION}.amazonaws.com/${process.env.AWS_S3_BUCKET_NAME}/${fileName}`;
+  }
+
+  async uploadImage(file: Express.Multer.File) {
+    const imageName = uuid();
+    const ext = file.originalname.split('.').pop();
+    const imageUrl = await this.uploadImageToS3(
+      `${imageName}.${ext}`,
+      file,
+      ext,
     );
-    return uploadedImage;
+    return { imageUrl };
   }
 }

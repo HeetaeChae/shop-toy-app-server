@@ -12,7 +12,7 @@ import { UsersService } from './users.service';
     TypeOrmModule.forFeature([User]),
     forwardRef(() => CouponsModule),
     forwardRef(() => WishesModule),
-    CartsModule,
+    forwardRef(() => CartsModule),
   ],
   controllers: [UsersController],
   providers: [UsersService],

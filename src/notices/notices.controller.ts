@@ -22,6 +22,24 @@ import { NoticesService } from './notices.service';
 export class NoticesController {
   constructor(private noticesService: NoticesService) {}
 
+  @ApiOperation({
+    summary: '모든 공지사항 가져오기',
+    description: '모든 공지사항 가져오기 기능',
+  })
+  @Get()
+  async getNotices() {
+    return this.noticesService.getNotices();
+  }
+
+  @ApiOperation({
+    summary: '특정 공지사항 가져오기',
+    description: '특정 공지사항 가져오기 기능',
+  })
+  @Get(':id')
+  async getNotice(@Param('id', ParseIntPipe) noticeId: number) {
+    return this.noticesService.getNotice(noticeId);
+  }
+
   @ApiOperation({ summary: '공지사항 생성', description: '공지사항 생성 기능' })
   @Post()
   @UseGuards(LoggedInGuard)
@@ -43,9 +61,9 @@ export class NoticesController {
   @Patch(':id')
   @UseGuards(LoggedInGuard)
   async updateNotice(
+    @IsAdminRoles() isAdminRoles: boolean,
     @UserId() userId: number,
     @Param('id', ParseIntPipe) noticeId: number,
-    @IsAdminRoles() isAdminRoles: boolean,
     @Body() updateNoticeDto: UpdateNoticeDto,
   ) {
     if (!isAdminRoles) {
@@ -61,23 +79,5 @@ export class NoticesController {
       content,
       isActive,
     );
-  }
-
-  @ApiOperation({
-    summary: '공지사항 가져오기',
-    description: '모든 공지사항 가져오기 기능',
-  })
-  @Get()
-  async getNotices() {
-    return this.noticesService.getNotices();
-  }
-
-  @ApiOperation({
-    summary: '공지사항 가져오기',
-    description: '특정 공지사항 가져오기 기능',
-  })
-  @Get(':id')
-  async getNotice(@Param('id', ParseIntPipe) noticeId: number) {
-    return this.noticesService.getNotice(noticeId);
   }
 }

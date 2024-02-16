@@ -1,5 +1,8 @@
 import {
+  ConflictException,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,63 +10,98 @@ import { InjectRepository } from '@nestjs/typeorm';
 import dayjs from 'dayjs';
 import { Cart } from 'src/entities/Cart.entity';
 import { CartProduct } from 'src/entities/CartProduct.entity';
+import { Product } from 'src/entities/Product.entity';
 import { User } from 'src/entities/User.entity';
 import { IsChecked } from 'src/enums/is-checked.enum';
 import { ProductsService } from 'src/products/products.service';
-import { DataSource, Repository } from 'typeorm';
+import { UsersService } from 'src/users/users.service';
+import { DataSource, DeleteResult, Repository, UpdateResult } from 'typeorm';
 import { CreateCartProductDto } from './dto/create-cart-product.dto';
 import { UpdateCartProductDto } from './dto/update-cart-product.dto';
 
 @Injectable()
 export class CartsService {
   constructor(
-    @InjectRepository(Cart) private cartRepository: Repository<Cart>,
+    @InjectRepository(Cart) private cartsRepository: Repository<Cart>,
     @InjectRepository(CartProduct)
-    private cartProductRepository: Repository<CartProduct>,
+    private cartProductsRepository: Repository<CartProduct>,
+    @InjectRepository(Product) private productsRepository: Repository<Product>,
+    @Inject(forwardRef(() => ProductsService))
     private productsService: ProductsService,
+    @Inject(forwardRef(() => UsersService))
+    private usersService: UsersService,
     private dataSource: DataSource,
   ) {}
 
-  async getCartById(cartId: number) {
-    const cart = await this.cartRepository.findOne({ where: { id: cartId } });
+  async getCartById(cartId: number): Promise<Cart | undefined> {
+    const cart = await this.cartsRepository.findOne({ where: { id: cartId } });
     if (!cart) {
       throw new NotFoundException('장바구니를 찾을 수 없습니다.');
     }
     return cart;
   }
 
-  async getCartProductById(cartProductId: number) {
-    const cartProduct = await this.cartProductRepository.findOne({
-      where: { id: cartProductId },
-    });
-    if (!cartProduct) {
-      throw new NotFoundException('장바구니 상품을 찾을 수 없습니다.');
+  async getCartByUserId(userId: number): Promise<Cart | undefined> {
+    const user = await this.usersService.getUserById(userId);
+    const cart = await this.cartsRepository.findOne({ where: { user } });
+    if (!cart) {
+      throw new NotFoundException('내 장바구니가 존재하지 않습니다.');
     }
-    return cartProduct;
+    return cart;
+  }
+
+  async checkIsOwnCartProduct(
+    cart: Cart,
+    cartProductId: number,
+  ): Promise<void | undefined> {
+    const ownCartProduct = await this.cartProductsRepository.findOne({
+      where: { id: cartProductId, cart },
+    });
+    if (!ownCartProduct) {
+      throw new NotFoundException('내 장바구니 상품을 찾을 수 없습니다.');
+    }
+  }
+
+  async checkIsExistCart(user: User): Promise<void | undefined> {
+    const existCart = await this.cartsRepository.findOne({ where: { user } });
+    if (existCart) {
+      throw new ConflictException('이미 장바구니가 생성되어있습니다.');
+    }
+  }
+
+  async checkIsExistCarProduct(
+    cart: Cart,
+    product: Product,
+  ): Promise<void | undefined> {
+    const existCartProduct = await this.cartProductsRepository.findOne({
+      where: { cart, product },
+    });
+    if (existCartProduct) {
+      throw new ConflictException('이미 등록된 장바구니 상품입니다.');
+    }
   }
 
   async creatCart(user: User): Promise<Cart | undefined> {
-    const newCart = await this.cartRepository.create({
-      user: user,
+    await this.checkIsExistCart(user);
+    const newCart = await this.cartsRepository.create({
+      user,
     });
-    return this.cartRepository.save(newCart);
+    return this.cartsRepository.save(newCart);
   }
 
-  async getCartProducts(userId: number) {
-    return this.cartProductRepository
+  async getCartProducts(userId: number): Promise<CartProduct[] | undefined> {
+    return this.cartProductsRepository
       .createQueryBuilder('cartProducts')
-      .leftJoinAndSelect('cartProducts.cart', 'cart')
+      .leftJoinAndSelect('cartProducts.product', 'product')
+      .innerJoin('cartProducts.cart', 'cart')
       .innerJoin('cart.user', 'user')
       .where('user.id = :userId', { userId })
       .getMany();
   }
 
-  async checkCart(userId: number, cartId: number) {
-    const cartToCheck = await this.getCartById(cartId);
-    if (cartToCheck?.user.id !== userId) {
-      throw new NotFoundException('헤당 장바구니의 소유자가 아닙니다.');
-    }
-    const checkedCart = await this.cartRepository.update(cartId, {
+  async checkCart(userId: number) {
+    const cart = await this.getCartByUserId(userId);
+    const checkedCart = await this.cartsRepository.update(cart?.id, {
       isChecked: IsChecked.CHECKED,
       checkedAt: dayjs(),
     });
@@ -75,27 +113,26 @@ export class CartsService {
 
   async createCartProduct({
     userId,
-    cartId,
     productId,
     quantity,
     size,
     color,
-  }: CreateCartProductDto & { userId: number }) {
+  }: CreateCartProductDto & { userId: number }): Promise<
+    CartProduct | undefined
+  > {
+    const cart = await this.getCartByUserId(userId);
     const product = await this.productsService.getProductById(productId);
-    const cart = await this.getCartById(cartId);
-    if (cart?.user.id !== userId) {
-      throw new ForbiddenException('해당 장바구니의 소유자가 아닙니다.');
-    }
+    await this.checkIsExistCarProduct(cart, product);
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
       // 1) 장바구니 체크여부 업데이트
-      await this.cartRepository.update(cartId, {
+      await this.cartsRepository.update(cart.id, {
         isChecked: IsChecked.NOTCHECKED,
       });
       // 2) 장바구니에 상품 등록
-      const newCartProduct = await this.cartProductRepository.create({
+      const newCartProduct = await this.cartProductsRepository.create({
         cart,
         product,
         quantity,
@@ -103,7 +140,7 @@ export class CartsService {
         color,
       });
       await queryRunner.commitTransaction();
-      return this.cartProductRepository.save(newCartProduct);
+      return this.cartProductsRepository.save(newCartProduct);
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw new ForbiddenException(
@@ -114,52 +151,19 @@ export class CartsService {
     }
   }
 
-  async deleteCartProduct(
-    userId: number,
-    cartId: number,
-    cartProductId: number,
-  ) {
-    const cartProduct = await this.cartRepository
-      .createQueryBuilder('cart')
-      .innerJoin('cart.cartProduct', 'cartProduct')
-      .where('cartProduct.id = :cartProductId', { cartProductId })
-      .andWhere('cart.user.id = :userId', { userId })
-      .andWhere('cart.id = :cartId', { cartId })
-      .getOne();
-    if (!cartProduct) {
-      throw new ForbiddenException('나의 장바구니 상품만 삭제할 수 있습니다.');
-    }
-    const deletedCartProduct =
-      await this.cartProductRepository.delete(cartProductId);
-    if (deletedCartProduct.affected === 0) {
-      throw new NotFoundException('장바구니 상품이 삭제되지 않았습니다.');
-    }
-    return deletedCartProduct;
-  }
-
   async updateCartProduct({
     userId,
-    cartId,
     cartProductId,
     quantity,
     size,
     color,
   }: UpdateCartProductDto & {
     userId: number;
-    cartId: number;
     cartProductId: number;
-  }) {
-    const cartProduct = await this.cartRepository
-      .createQueryBuilder('cart')
-      .innerJoin('cart.cartProduct', 'cartProduct')
-      .where('cartProduct.id = :cartProductId', { cartProductId })
-      .andWhere('cart.user.id = :userId', { userId })
-      .andWhere('cart.id = :cartId', { cartId })
-      .getOne();
-    if (!cartProduct) {
-      throw new ForbiddenException('나의 장바구니 상품만 수정할 수 있습니다.');
-    }
-    const updatedCartProduct = await this.cartProductRepository.update(
+  }): Promise<UpdateResult | undefined> {
+    const cart = await this.getCartByUserId(userId);
+    await this.checkIsOwnCartProduct(cart, cartProductId);
+    const updatedCartProduct = await this.cartProductsRepository.update(
       cartProductId,
       { quantity, size, color },
     );
@@ -167,5 +171,19 @@ export class CartsService {
       throw new NotFoundException('장바구니 상품이 수정되지 않았습니다.');
     }
     return updatedCartProduct;
+  }
+
+  async deleteCartProduct(
+    userId: number,
+    cartProductId: number,
+  ): Promise<DeleteResult | undefined> {
+    const cart = await this.getCartByUserId(userId);
+    await this.checkIsOwnCartProduct(cart, cartProductId);
+    const deletedCartProduct =
+      await this.cartProductsRepository.softDelete(cartProductId);
+    if (deletedCartProduct.affected === 0) {
+      throw new NotFoundException('장바구니 상품이 삭제되지 않았습니다.');
+    }
+    return deletedCartProduct;
   }
 }

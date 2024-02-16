@@ -1,4 +1,3 @@
-import { IsActive } from 'src/enums/is-active.enum';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { BaseEntity } from './BaseEntity.entity';
 import { UserCoupon } from './UserCoupon.entity';
@@ -14,7 +13,6 @@ export class Coupon extends BaseEntity {
   @Column({ name: 'expiry_period', default: 7 })
   expiryPeriod: number;
 
-  @Column({ name: '' })
   @OneToMany(() => UserCoupon, (userCoupons) => userCoupons.coupon)
   userCoupons: UserCoupon[];
 }

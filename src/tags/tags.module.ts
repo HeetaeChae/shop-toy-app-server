@@ -1,5 +1,6 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Product } from 'src/entities/Product.entity';
 import { Tag } from 'src/entities/Tag.entity';
 import { TagProduct } from 'src/entities/TagProduct.entity';
 import { ProductsModule } from 'src/products/products.module';
@@ -9,9 +10,9 @@ import { TagsService } from './tags.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Tag, TagProduct]),
+    TypeOrmModule.forFeature([Tag, TagProduct, Product]),
     UsersModule,
-    forwardRef(() => ProductsModule),
+    ProductsModule,
   ],
   controllers: [TagsController],
   providers: [TagsService],

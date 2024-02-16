@@ -1,10 +1,16 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CartsService } from 'src/carts/carts.service';
 import { CouponsService } from 'src/coupons/coupons.service';
 import { User } from 'src/entities/User.entity';
 import { WishesService } from 'src/wishes/wishes.service';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, UpdateResult } from 'typeorm';
 
 @Injectable()
 export class UsersService {
@@ -12,6 +18,7 @@ export class UsersService {
     @InjectRepository(User) private userRepository: Repository<User>,
     @Inject(forwardRef(() => WishesService))
     private wishesService: WishesService,
+    @Inject(forwardRef(() => CartsService))
     private cartsService: CartsService,
     @Inject(forwardRef(() => CouponsService))
     private couponsService: CouponsService,
@@ -19,15 +26,27 @@ export class UsersService {
   ) {}
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return this.userRepository.findOne({ where: { email } });
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('존재하는 유저가 아닙니다.');
+    }
+    return user;
   }
 
   async getUserByNickname(nickname: string): Promise<User | undefined> {
-    return this.userRepository.findOne({ where: { nickname } });
+    const user = await this.userRepository.findOne({ where: { nickname } });
+    if (!user) {
+      throw new NotFoundException('존재하는 유저가 아닙니다.');
+    }
+    return user;
   }
 
   async getUserById(id: number): Promise<User | undefined> {
-    return this.userRepository.findOne({ where: { id } });
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('존재하는 유저가 아닙니다.');
+    }
+    return user;
   }
 
   async createUser(
@@ -38,8 +57,8 @@ export class UsersService {
   ): Promise<User | undefined> {
     const queryRunner = await this.dataSource.createQueryRunner();
     await queryRunner.connect();
+    await queryRunner.startTransaction();
     try {
-      await queryRunner.startTransaction();
       // 유저 생성
       const newUser = await this.userRepository.create({
         email,
@@ -54,7 +73,6 @@ export class UsersService {
       await this.cartsService.creatCart(savedUser);
       await queryRunner.commitTransaction();
       return savedUser;
-      // 유저 리턴 ?
     } catch (error) {
       await queryRunner.rollbackTransaction();
     } finally {
@@ -62,7 +80,11 @@ export class UsersService {
     }
   }
 
-  async deleteUserById(id: number) {
-    return this.userRepository.softDelete({ id });
+  async deleteUserById(id: number): Promise<UpdateResult | undefined> {
+    const deletedUser = await this.userRepository.softDelete({ id });
+    if (deletedUser.affected === 0) {
+      throw new ForbiddenException('유저를 삭제하지 못했습니다.');
+    }
+    return deletedUser;
   }
 }

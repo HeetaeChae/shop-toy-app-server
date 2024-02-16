@@ -11,7 +11,7 @@ import { WishesService } from './wishes.service';
   imports: [
     TypeOrmModule.forFeature([Wish, WishProduct]),
     forwardRef(() => UsersModule),
-    ProductsModule,
+    forwardRef(() => ProductsModule),
   ],
   controllers: [WishesController],
   providers: [WishesService],

@@ -1,13 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
   Patch,
   Post,
   UseGuards,
-  ValidationPipe,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { LoggedInGuard } from 'src/auth/auth-status.guard';
@@ -23,11 +23,11 @@ export class AddressesController {
 
   // 내 주소 목록 가져오기
   @ApiOperation({
-    summary: '주소 목록 가져오기',
-    description: '내 주소 목록 가져오기',
+    summary: '내 주소 목록 가져오기',
+    description: '내 주소 목록 가져오기 기능',
   })
   @UseGuards(LoggedInGuard)
-  @Get('')
+  @Get()
   async getAddresses(@UserId() userId: number) {
     return this.addressesService.getAddresses(userId);
   }
@@ -35,7 +35,7 @@ export class AddressesController {
   // 특정 주소 가져오기
   @ApiOperation({
     summary: '특정 주소 가져오기',
-    description: '특정 주소 가져오기',
+    description: '특정 주소 가져오기 기능',
   })
   @UseGuards(LoggedInGuard)
   @Get(':id')
@@ -49,13 +49,13 @@ export class AddressesController {
   // 주소 등록하기
   @ApiOperation({
     summary: '주소 등록하기',
-    description: '주소 정보 등록하기',
+    description: '주소 정보 등록하기 기능',
   })
   @UseGuards(LoggedInGuard)
-  @Post('')
+  @Post()
   async createAddress(
     @UserId() userId: number,
-    @Body(ValidationPipe) createAddressDto: CreateAddressDto,
+    @Body() createAddressDto: CreateAddressDto,
   ) {
     const {
       zipCode,
@@ -79,14 +79,14 @@ export class AddressesController {
   // 주소 수정하기
   @ApiOperation({
     summary: '주소 수정하기',
-    description: '주소 정보 수정하기',
+    description: '주소 정보 수정하기 기능',
   })
   @UseGuards(LoggedInGuard)
   @Patch(':id')
   async updateAddress(
     @UserId() userId: number,
-    @Param(ParseIntPipe) addressId: number,
-    @Body(ValidationPipe) updateAddressDto: UpdateAddressDto,
+    @Param('id', ParseIntPipe) addressId: number,
+    @Body() updateAddressDto: UpdateAddressDto,
   ) {
     const {
       zipCode,
@@ -123,5 +123,13 @@ export class AddressesController {
   }
 
   // 주소 삭제
-  // @ApiOperation({})
+  @ApiOperation({ summary: '주소 삭제', description: '주소 삭제 기능' })
+  @UseGuards(LoggedInGuard)
+  @Delete(':id')
+  async deleteAddress(
+    @UserId() userId: number,
+    @Param('id', ParseIntPipe) addressId: number,
+  ) {
+    return this.addressesService.deleteAddress(userId, addressId);
+  }
 }

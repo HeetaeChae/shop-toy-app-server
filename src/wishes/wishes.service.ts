@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   forwardRef,
   Inject,
@@ -6,24 +7,26 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Product } from 'src/entities/Product.entity';
 import { User } from 'src/entities/User.entity';
 import { Wish } from 'src/entities/Wish.entity';
 import { WishProduct } from 'src/entities/WishProduct.entity';
 import { ProductsService } from 'src/products/products.service';
 import { UsersService } from 'src/users/users.service';
-import { Repository } from 'typeorm';
+import { DeleteResult, Repository } from 'typeorm';
 import { DataSource } from 'typeorm';
 
 @Injectable()
 export class WishesService {
   constructor(
-    private dataSource: DataSource,
     @InjectRepository(Wish) private wishsRepository: Repository<Wish>,
     @InjectRepository(WishProduct)
     private wishProductsRepository: Repository<WishProduct>,
     @Inject(forwardRef(() => UsersService))
     private usersService: UsersService,
+    @Inject(forwardRef(() => ProductsService))
     private productsService: ProductsService,
+    private dataSource: DataSource,
   ) {}
 
   async createWish(user: User): Promise<Wish | undefined> {
@@ -33,39 +36,57 @@ export class WishesService {
     return this.wishsRepository.save(newWish);
   }
 
-  async getWishById(wishId: number) {
-    return this.wishsRepository.findOne({ where: { id: wishId } });
-  }
-
-  async getWishProducts(userId: number) {
-    const wish = await this.wishsRepository
-      .createQueryBuilder('wish')
-      .leftJoinAndSelect('wish.wishProducts', 'wishProducts')
-      .where('wish.userId= :userId', { userId })
-      .getOne();
+  async getWishByUserId(userId: number) {
+    const user = await this.usersService.getUserById(userId);
+    const wish = await this.wishsRepository.findOne({ where: { user } });
     if (!wish) {
-      throw new NotFoundException('존재하지 않는 데이터입니다.');
+      throw new NotFoundException('내 찜이 존재하지 않습니다.');
     }
     return wish;
   }
 
+  async checkIsExistWishProduct(wish: Wish, product: Product) {
+    const existWishProduct = await this.wishProductsRepository.findOne({
+      where: { wish, product },
+    });
+    if (existWishProduct) {
+      throw new ConflictException('이미 존재하는 찜 상품입니다.');
+    }
+  }
+
+  async checkIsOwnWishProduct(wish: Wish, cartProductId: number) {
+    const ownWishProduct = await this.wishProductsRepository.findOne({
+      where: { wish, id: cartProductId },
+    });
+    if (!ownWishProduct) {
+      throw new NotFoundException('찜 데이터가 존재하지 않습니다.');
+    }
+  }
+
+  async getWishProducts(userId: number): Promise<WishProduct[] | undefined> {
+    return (
+      this.wishProductsRepository
+        .createQueryBuilder('wishProducts')
+        .leftJoinAndSelect('wishProducts.product', 'product')
+        // join된 product와 관계된 모든 wishProducts의 length값을 출력
+        .addSelect(
+          '(SELECT COUNT(*) FROM wish_products WHERE wish_products.product_id = product.id)',
+          'wishProductsCount',
+        )
+        .innerJoin('wishProducts.wish', 'wish')
+        .innerJoin('wish.user', 'user')
+        .where('user.id = :userId', { userId })
+        .getMany()
+    );
+  }
+
   async createWishProduct(
     userId: number,
-    wishId: number,
     productId: number,
   ): Promise<WishProduct | undefined> {
-    const wish = await this.getWishById(wishId);
-    if (!wish) {
-      throw new ForbiddenException('존재하지 않는 찜 데이터입니다.');
-    }
-    const isWishOwner = wish.user.id === userId;
-    if (!isWishOwner) {
-      throw new ForbiddenException('본인의 찜 데이터가 아닙니다.');
-    }
+    const wish = await this.getWishByUserId(userId);
     const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      throw new NotFoundException('존재하지 않는 상품입니다.');
-    }
+    await this.checkIsExistWishProduct(wish, product);
     const newWishProduct = await this.wishProductsRepository.create({
       wish,
       product,
@@ -73,22 +94,14 @@ export class WishesService {
     return this.wishProductsRepository.save(newWishProduct);
   }
 
-  async deleteWishProducts(userId: number, wishId: number): Promise<void> {
-    const wish = await this.wishsRepository
-      .createQueryBuilder('wish')
-      .leftJoinAndSelect('wish.wishProducts', 'wishProducts')
-      .where('wish.id = :id', { id: wishId })
-      .getOne();
-    const isWishOwner = wish.user.id === userId;
-    if (!isWishOwner) {
-      throw new ForbiddenException('본인의 찜 데이터가 아닙니다.');
-    }
+  async deleteWishProducts(userId: number): Promise<void> {
+    const wishProducts = await this.getWishProducts(userId);
     const queryRunner = await this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-      for (const wishProduct of wish.wishProducts) {
-        await this.wishProductsRepository.softDelete({ id: wishProduct.id });
+      for (const wishProduct of wishProducts) {
+        await this.deleteWishProduct(userId, wishProduct.id);
       }
       await queryRunner.commitTransaction();
     } catch (error) {
@@ -100,26 +113,15 @@ export class WishesService {
 
   async deleteWishProduct(
     userId: number,
-    wishId: number,
-    productId: number,
-  ): Promise<void> {
-    const wish = await this.wishsRepository
-      .createQueryBuilder('wish')
-      .leftJoinAndSelect('wish.wishProducts', 'wishProducts')
-      .innerJoin('wishProducts.product', 'product')
-      .where('wish.id = :wishId', { wishId })
-      .andWhere('product.id = :productId', { productId })
-      .getOne();
-    const isWishOwner = wish.user.id === userId;
-    if (!isWishOwner) {
-      throw new ForbiddenException('본인의 찜 데이터가 아닙니다.');
+    wishProductId: number,
+  ): Promise<DeleteResult | undefined> {
+    const wish = await this.getWishByUserId(userId);
+    await this.checkIsOwnWishProduct(wish, wishProductId);
+    const deletedWishProduct =
+      await this.wishProductsRepository.softDelete(wishProductId);
+    if (deletedWishProduct.affected === 0) {
+      throw new ForbiddenException('찜 상품을 삭제할 수 없습니다.');
     }
-    const wishProductId = wish.wishProducts[0].id;
-    if (!wishProductId) {
-      throw new NotFoundException('찜한 상품이 존재하지 않습니다.');
-    }
-    await this.wishProductsRepository.softDelete({
-      id: wishProductId,
-    });
+    return deletedWishProduct;
   }
 }

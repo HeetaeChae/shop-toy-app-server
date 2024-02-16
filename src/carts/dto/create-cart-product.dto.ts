@@ -4,10 +4,6 @@ import { Color } from 'src/enums/color.enum';
 import { Size } from 'src/enums/size.enum';
 
 export class CreateCartProductDto {
-  @ApiProperty({ example: 33, description: '장바구니 Id' })
-  @IsNumber()
-  cartId: number;
-
   @ApiProperty({ example: 61, description: '상품 id' })
   @IsNumber()
   productId: number;
@@ -20,7 +16,7 @@ export class CreateCartProductDto {
   @IsEnum(Color)
   color: Color;
 
-  @ApiProperty({example: "L", description: "사이즈"})
+  @ApiProperty({ example: 'L', description: '사이즈' })
   @IsEnum(Size)
-  size: Size
+  size: Size;
 }

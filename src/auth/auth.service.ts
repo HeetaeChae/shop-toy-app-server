@@ -44,9 +44,6 @@ export class AuthService {
 
   async login(email: string, pass: string) {
     const user = await this.usersService.getUserByEmail(email);
-    if (!user) {
-      throw new NotFoundException('해당 유저가 존재하지 않습니다.');
-    }
     const isPasswordValid = await bcrypt.compare(pass, user.password);
     if (!isPasswordValid) {
       throw new NotFoundException('비밀번호가 다릅니다.');
@@ -57,18 +54,12 @@ export class AuthService {
 
   async checkAuthState(id: number) {
     const user = await this.usersService.getUserById(id);
-    if (!user) {
-      throw new NotFoundException('해당 유저가 존재하지 않습니다.');
-    }
     const { password, ...result } = user;
     return result;
   }
 
   async deleteAccount(id: number, pass: string) {
     const user = await this.usersService.getUserById(id);
-    if (!user) {
-      throw new NotFoundException('해당 유저가 존재하지 않습니다.');
-    }
     const isPasswordValid = await bcrypt.compare(pass, user.password);
     if (!isPasswordValid) {
       throw new NotFoundException('비밀번호를 틀렸습니다.');

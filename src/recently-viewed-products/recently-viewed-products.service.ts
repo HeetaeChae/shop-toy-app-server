@@ -6,67 +6,92 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from 'src/entities/Product.entity';
 import { RecentlyViewedProduct } from 'src/entities/RecentlyViewedProduct.entity';
+import { User } from 'src/entities/User.entity';
 import { ProductsService } from 'src/products/products.service';
 import { UsersService } from 'src/users/users.service';
-import { Repository } from 'typeorm';
+import { DeleteResult, Repository } from 'typeorm';
 
 @Injectable()
 export class RecentlyViewedProductsService {
   constructor(
     @InjectRepository(RecentlyViewedProduct)
     private recentlyViewedProductsRepository: Repository<RecentlyViewedProduct>,
+    @InjectRepository(Product)
+    private productsRepository: Repository<Product>,
     private usersService: UsersService,
     private productsService: ProductsService,
   ) {}
 
-  async getMyRecentlyViewedProducts(userId: number) {
-    return this.recentlyViewedProductsRepository
-      .createQueryBuilder('recentlyViewedProducts')
-      .leftJoinAndSelect('recentlyViewedProducts.product', 'product')
-      .innerJoin('recentlyViewedProducts.user', 'user')
-      .where('user.id = :userId', { userId })
-      .orderBy('recentlyViewedProducts.viewedAt', 'DESC')
-      .groupBy('recentlyViewedProducts.product')
-      .limit(5)
-      .getMany();
+  // 3번 본 상품인지 체크
+  async checkIsThreeTimesRecentlyViewedProduct(
+    user: User,
+    product: Product,
+  ): Promise<boolean | undefined> {
+    const isThreeTimesRecentlyViewedProduct =
+      await this.recentlyViewedProductsRepository.find({
+        where: { user, product },
+      });
+    return isThreeTimesRecentlyViewedProduct.length === 3;
   }
 
-  async getTrendRecentlyViewedProducts() {
-    return this.recentlyViewedProductsRepository
-      .createQueryBuilder('recentlyViewedProducts')
-      .leftJoinAndSelect('recentlyViewedProducts.product', 'product')
-      .select(
-        'recentlyViewedProducts.product, COUNT(recentlyViewedProducts.product) as viewedCount',
-      )
-      .groupBy('recentlyViewedProducts.product')
-      .orderBy('viewedCount', 'DESC')
-      .limit(5)
-      .getMany();
+  // 내가 최근 본 상품인지 여부 체크
+  async checkIsOwnRecentlyViewedProduct(
+    user: User,
+    id: number,
+  ): Promise<void | undefined> {
+    const isOwnRecentlyViewedProduct =
+      await this.recentlyViewedProductsRepository.findOne({
+        where: { id, user },
+      });
+    if (!isOwnRecentlyViewedProduct) {
+      throw new ForbiddenException('내가 최근 본 상품이 아닙니다.');
+    }
   }
 
-  async createRecentlyViewedProduct(userId: number, productId: number) {
+  // 내가 최근 본 상품 5개 가져오기
+  async getMyRecentlyViewedProducts(userId: number) {}
+
+  // 최근 가장 많이 클릭된 트렌드 상품 5개 가져오기
+  async getTrendRecentlyViewedProducts() {}
+
+  // 최근 본 상품 등록
+  async createRecentlyViewedProduct(
+    userId: number,
+    productId: number,
+  ): Promise<
+    | {
+        savedRecentlyViewedProduct: RecentlyViewedProduct;
+        isThreeTimesRecentlyViewedProduct: boolean;
+      }
+    | undefined
+  > {
     const user = await this.usersService.getUserById(userId);
-    if (!user) {
-      throw new NotFoundException('해당 유저가 존재하지 않습니다.');
-    }
     const product = await this.productsService.getProductById(productId);
-    if (!product) {
-      throw new NotFoundException('해당 상품이 존재하지 않습니다.');
-    }
     const newRecentlyViewedProduct =
-      await this.recentlyViewedProductsRepository.create({ user, product });
-    return this.recentlyViewedProductsRepository.save(newRecentlyViewedProduct);
+      await this.recentlyViewedProductsRepository.create({
+        user,
+        product,
+        productIdForGrouping: productId,
+      });
+    const savedRecentlyViewedProduct =
+      await this.recentlyViewedProductsRepository.save(
+        newRecentlyViewedProduct,
+      );
+    const isThreeTimesRecentlyViewedProduct =
+      await this.checkIsThreeTimesRecentlyViewedProduct(user, product);
+    return { savedRecentlyViewedProduct, isThreeTimesRecentlyViewedProduct };
   }
 
-  async deleteRecentlyViewedProduct(userId: number, id: number) {
-    const recentlyViewedProductToDelete =
-      await this.recentlyViewedProductsRepository.findOne({ where: { id } });
-    if (recentlyViewedProductToDelete.user.id !== userId) {
-      throw new ForbiddenException('등록하신 데이터가 아닙니다.');
-    }
+  // 최근 본 상품 삭제
+  async deleteRecentlyViewedProduct(
+    userId: number,
+    id: number,
+  ): Promise<DeleteResult | undefined> {
+    const user = await this.usersService.getUserById(userId);
+    await this.checkIsOwnRecentlyViewedProduct(user, id);
     const deletedRecentlyViewedProduct =
-      await this.recentlyViewedProductsRepository.delete(id);
-    if (!deletedRecentlyViewedProduct) {
+      await this.recentlyViewedProductsRepository.softDelete(id);
+    if (deletedRecentlyViewedProduct.affected === 0) {
       throw new NotFoundException('최근 본 상품이 삭제되지 않았습니다.');
     }
     return deletedRecentlyViewedProduct;
