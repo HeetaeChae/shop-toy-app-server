@@ -11,7 +11,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { LoggedInGuard } from 'src/auth/auth-status.guard';
 import { IsAdminRoles } from 'src/decorators/is-admin-roles.decorator';
 import { UserId } from 'src/decorators/user-id.decorator';
@@ -21,7 +21,7 @@ import { CreateCouponDto } from './dto/create-coupon.dto';
 import { CreateUserCouponDto } from './dto/create-user-coupon.dto';
 import { UpdateUserCouponStatusDto } from './dto/update-user-coupon-status.dto';
 
-@Controller('coupons')
+@Controller('api/coupons')
 @ApiTags('coupons')
 export class CouponsController {
   constructor(private couponsService: CouponsService) {}
@@ -31,14 +31,46 @@ export class CouponsController {
     summary: '모든 쿠폰 가져오기',
     description: '모든 쿠폰 가져오기 기능 (20개 씩)',
   })
+  @ApiQuery({
+    name: 'page',
+    description: '가져올 페이지',
+    example: '1',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    description: '가져올 데이터 갯수',
+    example: '20',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'orderName',
+    description: '정렬할 조건명',
+    example: CouponOrderName.CREATED_AT,
+    required: true,
+  })
+  @ApiQuery({
+    name: 'orderBy',
+    description: '정렬할 조건 차순',
+    example: CouponOrderBy.DESC,
+    required: true,
+  })
+  @UseGuards(LoggedInGuard)
   @Get()
   async getCoupons(
     @Query('page', ParseIntPipe) page: number = 1,
     @Query('pageSize', ParseIntPipe) pageSize: number = 20,
     @Query('orderName') orderName: CouponOrderName = CouponOrderName.CREATED_AT,
     @Query('orderBy') orderBy: CouponOrderBy = CouponOrderBy.DESC,
+    @UserId() userId: number,
   ) {
-    return this.couponsService.getCoupons(page, pageSize, orderName, orderBy);
+    return this.couponsService.getCoupons(
+      userId,
+      page,
+      pageSize,
+      orderName,
+      orderBy,
+    );
   }
 
   // 쿠폰 생성
@@ -62,6 +94,12 @@ export class CouponsController {
 
   // 쿠폰 삭제
   @ApiOperation({ summary: '쿠폰 삭제', description: '쿠폰 삭제 기능' })
+  @ApiParam({
+    name: 'id',
+    description: '쿠폰 id',
+    example: '1',
+    required: true,
+  })
   @UseGuards(LoggedInGuard)
   @Delete(':id')
   async deleteCoupon(
@@ -78,6 +116,30 @@ export class CouponsController {
   @ApiOperation({
     summary: '모든 유저 쿠폰 가져오기',
     description: '모든 유저 쿠폰 가져오기 기능 (20개 씩)',
+  })
+  @ApiQuery({
+    name: 'page',
+    description: '가져올 페이지',
+    example: '1',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    description: '가져올 데이터 갯수',
+    example: '20',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'orderName',
+    description: '정렬할 조건명',
+    example: CouponOrderName.CREATED_AT,
+    required: true,
+  })
+  @ApiQuery({
+    name: 'orderBy',
+    description: '정렬할 조건 차순',
+    example: CouponOrderBy.DESC,
+    required: true,
   })
   @UseGuards(LoggedInGuard)
   @Get('user-coupons')
@@ -102,6 +164,12 @@ export class CouponsController {
     summary: '특정 유저 쿠폰 가져오기',
     description: '특정 유저 쿠폰 가져오기 기능',
   })
+  @ApiParam({
+    name: 'id',
+    description: '쿠폰 id',
+    example: '1',
+    required: true,
+  })
   @UseGuards(LoggedInGuard)
   @Get(':id/user-coupons')
   async getUserCoupon(
@@ -117,7 +185,7 @@ export class CouponsController {
     description: '유저 쿠폰 생성(등록) 기능',
   })
   @UseGuards(LoggedInGuard)
-  @Post('/user-coupons')
+  @Post('user-coupons')
   async createUserCoupon(
     @UserId() userId: number,
     @Body() createUserCouponDto: CreateUserCouponDto,
@@ -130,6 +198,12 @@ export class CouponsController {
   @ApiOperation({
     summary: '유저 쿠폰 사용여부 변경',
     description: '유저 쿠폰 사용여부 변경 기능 (0: 미사용, 1: 사용)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: '쿠폰 id',
+    example: '1',
+    required: true,
   })
   @UseGuards(LoggedInGuard)
   @Patch(':id/user-coupons')

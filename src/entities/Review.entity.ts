@@ -56,4 +56,5 @@ export class Review extends BaseEntity {
 
   @OneToMany(() => ReviewThumbsup, (reviewThumbsups) => reviewThumbsups.review)
   reviewThumbsups: ReviewThumbsup[];
+  thumbsupUserId: number;
 }

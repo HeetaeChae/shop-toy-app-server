@@ -1,19 +1,16 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CartsModule } from 'src/carts/carts.module';
-import { CouponsModule } from 'src/coupons/coupons.module';
+import { Cart } from 'src/entities/Cart.entity';
+
+import { Coupon } from 'src/entities/Coupon.entity';
 import { User } from 'src/entities/User.entity';
-import { WishesModule } from 'src/wishes/wishes.module';
+import { UserCoupon } from 'src/entities/UserCoupon.entity';
+import { Wish } from 'src/entities/Wish.entity';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User]),
-    forwardRef(() => CouponsModule),
-    forwardRef(() => WishesModule),
-    forwardRef(() => CartsModule),
-  ],
+  imports: [TypeOrmModule.forFeature([User, UserCoupon, Coupon, Wish, Cart])],
   controllers: [UsersController],
   providers: [UsersService],
   exports: [UsersService],

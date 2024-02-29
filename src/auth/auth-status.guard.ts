@@ -24,3 +24,13 @@ export class NotLoggedInGuard extends AuthGuard implements CanActivate {
     return true;
   }
 }
+
+export class GetPayloadIfLoggedInGuard
+  extends AuthGuard
+  implements CanActivate
+{
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const canActivateFromAuthGuard = await super.canActivate(context);
+    return canActivateFromAuthGuard;
+  }
+}

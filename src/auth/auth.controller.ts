@@ -1,14 +1,5 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Post,
-  UseGuards,
-  ValidationPipe,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { LoginDto } from './dto/login.dto';
@@ -17,7 +8,7 @@ import { UserPayload } from 'src/decorators/user-payload.decorator';
 import { UserPayloadDto } from './dto/user-payload.dto';
 import { LoggedInGuard, NotLoggedInGuard } from './auth-status.guard';
 
-@Controller('auth')
+@Controller('api/auth')
 @ApiTags('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -25,7 +16,7 @@ export class AuthController {
   @ApiOperation({ summary: '회원가입', description: '회원가입 기능' })
   @UseGuards(NotLoggedInGuard)
   @Post('signup')
-  async signup(@Body(new ValidationPipe()) signupDto: SignupDto) {
+  async signup(@Body() signupDto: SignupDto) {
     const { email, password, nickname, roles } = signupDto;
     return this.authService.signup(email, password, nickname, roles);
   }
@@ -33,7 +24,7 @@ export class AuthController {
   @ApiOperation({ summary: '로그인', description: '로그인 기능' })
   @UseGuards(NotLoggedInGuard)
   @Post('login')
-  async login(@Body(new ValidationPipe()) loginDto: LoginDto) {
+  async login(@Body() loginDto: LoginDto) {
     const { email, password } = loginDto;
     return this.authService.login(email, password);
   }

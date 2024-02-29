@@ -64,7 +64,7 @@ export class TagsService {
     const existingTag = await this.tagsRepository.findOne({
       where: { name: tagName },
     });
-    let savedTagProduct;
+    let savedTagProduct: TagProduct;
     if (existingTag) {
       const newTagProduct = await this.tagProductsRepository.create({
         product,

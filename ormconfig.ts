@@ -1,6 +1,7 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import * as dotenv from 'dotenv';
 import { Address } from 'src/entities/Address.entity';
+import { BoughtProduct } from 'src/entities/BoughtProduct.entity';
 import { Cart } from 'src/entities/Cart.entity';
 import { CartProduct } from 'src/entities/CartProduct.entity';
 import { Category } from 'src/entities/Category.entity';
@@ -54,8 +55,9 @@ export const ormconfig: TypeOrmModuleOptions = {
     ReviewThumbsup,
     TagProduct,
     WishProduct,
+    BoughtProduct,
   ],
-  synchronize: true,
+  synchronize: false,
   autoLoadEntities: true,
   charset: 'utf8mb4',
   logging: true,

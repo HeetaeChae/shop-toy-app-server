@@ -1,4 +1,4 @@
 export enum IsUsed {
-  NOTUSED = 0,
-  USED = 1,
+  NOT_USED = '0',
+  USED = '1',
 }

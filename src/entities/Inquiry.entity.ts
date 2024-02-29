@@ -17,7 +17,7 @@ export class Inquiry extends BaseEntity {
     name: 'is_secret',
     type: 'enum',
     enum: IsSecret,
-    default: IsSecret.NOTSECRET,
+    default: IsSecret.NOT_SECRET,
   })
   isSecret: IsSecret;
 

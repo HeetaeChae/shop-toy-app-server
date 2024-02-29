@@ -1,5 +1,5 @@
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v1 as uuid } from 'uuid';
 
@@ -20,7 +20,7 @@ export class UploadsService {
     fileName: string,
     file: Express.Multer.File,
     ext: string,
-  ): Promise<String | undefined> {
+  ): Promise<string | undefined> {
     const command = new PutObjectCommand({
       Bucket: this.configService.get('AWS_S3_BUCKET_NAME'),
       Key: fileName,
@@ -32,7 +32,7 @@ export class UploadsService {
     return `http://s3.${process.env.AWS_REGION}.amazonaws.com/${process.env.AWS_S3_BUCKET_NAME}/${fileName}`;
   }
 
-  async uploadImage(file: Express.Multer.File) {
+  async getImageUrl(file: Express.Multer.File): Promise<string | undefined> {
     const imageName = uuid();
     const ext = file.originalname.split('.').pop();
     const imageUrl = await this.uploadImageToS3(
@@ -40,6 +40,9 @@ export class UploadsService {
       file,
       ext,
     );
-    return { imageUrl };
+    if (!imageUrl) {
+      throw new ForbiddenException('이미지를 업로드하지 못했습니다.');
+    }
+    return imageUrl;
   }
 }

@@ -1,5 +1,5 @@
 // 비밀 여부
 export enum IsSecret {
-  NOTSECRET = 0,
-  SECRET = 1,
+  NOT_SECRET = '0',
+  SECRET = '1',
 }

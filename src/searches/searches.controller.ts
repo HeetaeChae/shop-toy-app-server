@@ -7,16 +7,17 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { LoggedInGuard } from 'src/auth/auth-status.guard';
 import { UserId } from 'src/decorators/user-id.decorator';
 import { CreateSearchDto } from './dto/create-search.dto';
 import { SearchesService } from './searches.service';
 
 @ApiTags('searches')
-@Controller('searches')
+@Controller('api/searches')
 export class SearchesController {
   constructor(private searchesService: SearchesService) {}
+
   // 내 최근 검색어 (10개)
   @ApiOperation({
     summary: '내 최근 검색어 가져오기',
@@ -54,6 +55,12 @@ export class SearchesController {
   @ApiOperation({
     summary: '내 검색어 삭제',
     description: '내 검색어 삭제 기능',
+  })
+  @ApiParam({
+    name: 'id',
+    description: '검색어 id',
+    example: 1,
+    required: true,
   })
   @UseGuards(LoggedInGuard)
   @Delete(':id')

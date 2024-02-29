@@ -9,7 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { LoggedInGuard } from 'src/auth/auth-status.guard';
 import { UserId } from 'src/decorators/user-id.decorator';
 import { AddressesService } from './addresses.service';
@@ -17,7 +17,7 @@ import { CreateAddressDto } from './dto/create-address.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
 
 @ApiTags('addresses')
-@Controller('addresses')
+@Controller('api/addresses')
 export class AddressesController {
   constructor(private addressesService: AddressesService) {}
 
@@ -81,6 +81,12 @@ export class AddressesController {
     summary: '주소 수정하기',
     description: '주소 정보 수정하기 기능',
   })
+  @ApiParam({
+    name: 'id',
+    example: 1,
+    description: '주소 id',
+    required: true,
+  })
   @UseGuards(LoggedInGuard)
   @Patch(':id')
   async updateAddress(
@@ -113,8 +119,14 @@ export class AddressesController {
     summary: '주소 대표여부 변경하기',
     description: '주소 대표여부 변경하기',
   })
+  @ApiParam({
+    name: 'id',
+    example: 1,
+    description: '주소 id',
+    required: true,
+  })
   @UseGuards(LoggedInGuard)
-  @Patch(':id')
+  @Patch(':id/primary-status')
   async updateAddressPrimaryStatus(
     @UserId() userId: number,
     @Param('id', ParseIntPipe) addressId: number,
@@ -124,6 +136,12 @@ export class AddressesController {
 
   // 주소 삭제
   @ApiOperation({ summary: '주소 삭제', description: '주소 삭제 기능' })
+  @ApiParam({
+    name: 'id',
+    example: 1,
+    description: '주소 id',
+    required: true,
+  })
   @UseGuards(LoggedInGuard)
   @Delete(':id')
   async deleteAddress(

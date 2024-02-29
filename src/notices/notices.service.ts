@@ -18,11 +18,11 @@ export class NoticesService {
   ) {}
 
   async checkIsOwnNotice(
-    user: User,
+    userId: number,
     noticeId: number,
   ): Promise<void | undefined> {
     const ownNotice = await this.noticeRepository.findOne({
-      where: { id: noticeId, user },
+      where: { id: noticeId, user: { id: userId } },
     });
     if (!ownNotice) {
       throw new ForbiddenException('내가 작성한 공지사항이 아닙니다.');
@@ -63,8 +63,7 @@ export class NoticesService {
     content: string,
     isActive: IsActive,
   ): Promise<UpdateResult | undefined> {
-    const user = await this.usersService.getUserById(userId);
-    await this.checkIsOwnNotice(user, noticeId);
+    await this.checkIsOwnNotice(userId, noticeId);
     const updatedAddress = await this.noticeRepository.update(noticeId, {
       title,
       content,

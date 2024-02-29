@@ -23,7 +23,7 @@ export class Address extends BaseEntity {
   @Column({ nullable: true })
   receptorPhone: string;
 
-  @Column({ type: 'enum', enum: IsPrimary, default: IsPrimary.NOTPRIMARY })
+  @Column({ type: 'enum', enum: IsPrimary, default: IsPrimary.NOT_PRIMARY })
   isPrimary: IsPrimary;
 
   @ManyToOne(() => User, (user) => user.addresses, {

@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -8,7 +9,13 @@ import { Address } from 'src/entities/Address.entity';
 import { User } from 'src/entities/User.entity';
 import { IsPrimary } from 'src/enums/is-primary.enum';
 import { UsersService } from 'src/users/users.service';
-import { DataSource, DeleteResult, Repository, UpdateResult } from 'typeorm';
+import {
+  DataSource,
+  DeleteResult,
+  Not,
+  Repository,
+  UpdateResult,
+} from 'typeorm';
 import { CreateAddressDto } from './dto/create-address.dto';
 
 @Injectable()
@@ -21,16 +28,88 @@ export class AddressesService {
 
   // 수정할 주소가 존재하는지 여부 (유저 정보 대조)
   async checkIsOwnAddress(
-    user: User,
+    userId: number,
     addressId: number,
-  ): Promise<Address | undefined> {
+  ): Promise<void | undefined> {
     const ownAddress = await this.addressesRepository.findOne({
-      where: { user, id: addressId },
+      where: { user: { id: userId }, id: addressId },
     });
-    if (!ownAddress) {
-      throw new NotFoundException('업데이트할 주소가 존재하지 않습니다.');
+    const isOwnAddress = !!ownAddress;
+    if (!isOwnAddress) {
+      throw new NotFoundException('주소가 존재하지 않습니다.');
     }
-    return ownAddress;
+  }
+
+  // 대표 주소지가 존재하는지 여부 확인
+  async checkIsExistPrimaryAddress(
+    userId: number,
+  ): Promise<boolean | undefined> {
+    console.log(IsPrimary.PRIMARY);
+    const primaryAddress = await this.addressesRepository.findOne({
+      where: { user: { id: userId }, isPrimary: IsPrimary.PRIMARY },
+    });
+    console.log(primaryAddress);
+    const isExistPrimaryAddress = !!primaryAddress;
+    console.log('isExistPrimaryAddress', isExistPrimaryAddress);
+    return isExistPrimaryAddress;
+  }
+
+  // 내 주소지 중 이름이 같은 주소지가 존재하는지 여부 확인
+  async checkDuplicateAddressName(
+    userId: number,
+    addressName: string,
+  ): Promise<void | undefined> {
+    const duplicateAddressName = await this.addressesRepository.findOne({
+      where: { user: { id: userId }, addressName },
+    });
+    const isDuplicateAddressName = !!duplicateAddressName;
+    if (isDuplicateAddressName) {
+      throw new ConflictException('이름이 같은 주소지가 존재합니다.');
+    }
+  }
+
+  // 내 주소지 중 우편번호가 같은 주소지가 존재하는지 여부 확인
+  async checkDuplicateZipCode(
+    userId: number,
+    zipCode: string,
+  ): Promise<void | undefined> {
+    const duplicateZipCode = await this.addressesRepository.findOne({
+      where: { user: { id: userId }, zipCode },
+    });
+    const isDuplicateZipCode = !!duplicateZipCode;
+    if (isDuplicateZipCode) {
+      throw new ConflictException('우편번호가 같은 주소지가 존재합니다.');
+    }
+  }
+
+  // 내 주소지 중 이름이 같은 주소지가 존재하는지 여부 확인 (해당 id 주소지 제외)
+  async checkDuplicateAddressNameExcludingId(
+    userId: number,
+    addressId: number,
+    addressName: string,
+  ): Promise<void | undefined> {
+    const duplicateAddressName = await this.addressesRepository.findOne({
+      where: { user: { id: userId }, addressName, id: Not(addressId) },
+    });
+    const isDuplicateAddressName = !!duplicateAddressName;
+    if (isDuplicateAddressName) {
+      throw new ConflictException('이름이 같은 주소지가 존재합니다.');
+    }
+  }
+
+  // 내 주소지 중 우편번호가 같은 주소지가 존재하는지 여부 확인 (해당 id 주소지 제외)
+  async checkDuplicateZipCodeExcludingId(
+    userId: number,
+    addressId: number,
+    zipCode: string,
+  ): Promise<void | undefined> {
+    const duplicateZipCode = await this.addressesRepository.findOne({
+      where: { user: { id: userId }, zipCode, id: Not(addressId) },
+    });
+    const isDuplicateZipCode = !!duplicateZipCode;
+    if (isDuplicateZipCode) {
+      throw new ConflictException('우편번호가 같은 주소지가 존재합니다.');
+    }
   }
 
   // 모든 주소 가져오기
@@ -39,7 +118,7 @@ export class AddressesService {
       .createQueryBuilder('addresses')
       .innerJoin('addresses.user', 'user')
       .where('user.id = :userId', { userId })
-      .orderBy('isPrimary', 'DESC')
+      .orderBy('addresses.isPrimary', 'DESC')
       .getMany();
   }
 
@@ -66,10 +145,10 @@ export class AddressesService {
     receptorMobile,
     userId,
   }: CreateAddressDto & { userId: number }): Promise<Address | undefined> {
+    await this.checkDuplicateAddressName(userId, addressName);
+    await this.checkDuplicateZipCode(userId, zipCode);
+    const isExistPrimaryAddress = await this.checkIsExistPrimaryAddress(userId);
     const user = await this.usersService.getUserById(userId);
-    const existingPrimaryAddress = await this.addressesRepository.findOne({
-      where: { user, isPrimary: IsPrimary.PRIMARY },
-    });
     const newAddress = this.addressesRepository.create({
       zipCode,
       streetAddress,
@@ -77,12 +156,16 @@ export class AddressesService {
       receptorName,
       receptorPhone,
       receptorMobile,
-      isPrimary: existingPrimaryAddress
-        ? IsPrimary.NOTPRIMARY
+      isPrimary: isExistPrimaryAddress
+        ? IsPrimary.NOT_PRIMARY
         : IsPrimary.PRIMARY,
       user,
     });
-    return this.addressesRepository.save(newAddress);
+    const savedAddress = await this.addressesRepository.save(newAddress);
+    if (!savedAddress) {
+      throw new ForbiddenException('주소지를 저장할 수 없습니다.');
+    }
+    return savedAddress;
   }
 
   // 주소 수정하기
@@ -98,8 +181,13 @@ export class AddressesService {
   }: CreateAddressDto & { userId: number; addressId: number }): Promise<
     UpdateResult | undefined
   > {
-    const user = await this.usersService.getUserById(userId);
-    await this.checkIsOwnAddress(user, addressId);
+    await this.checkIsOwnAddress(userId, addressId);
+    await this.checkDuplicateAddressNameExcludingId(
+      userId,
+      addressId,
+      addressName,
+    );
+    await this.checkDuplicateZipCodeExcludingId(userId, addressId, zipCode);
     const updatedAddress = await this.addressesRepository.update(addressId, {
       zipCode,
       streetAddress,
@@ -119,22 +207,31 @@ export class AddressesService {
     userId: number,
     addressId: number,
   ): Promise<void | undefined> {
-    const user = await this.usersService.getUserById(userId);
-    await this.checkIsOwnAddress(user, addressId);
+    await this.checkIsOwnAddress(userId, addressId);
     const queryRunner = await this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
     try {
-      const primaryAddresses = await this.addressesRepository.find({
-        where: { user, isPrimary: IsPrimary.PRIMARY },
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+      // 기존 대표 주소지를 일반 주소지로 변경
+      const myAddresses = await queryRunner.manager.find(Address, {
+        where: {
+          user: { id: userId },
+        },
       });
-      for (const primaryAddress of primaryAddresses) {
-        await this.addressesRepository.update(primaryAddress.id, {
-          isPrimary: IsPrimary.NOTPRIMARY,
+      for (const address of myAddresses) {
+        const addressId = address.id;
+        await queryRunner.manager.update(Address, addressId, {
+          isPrimary: IsPrimary.NOT_PRIMARY,
         });
       }
-      await this.addressesRepository.update(addressId, {
+      // 해당 일반 주소지를 대표 주소지로 변경
+      await queryRunner.manager.update(Address, addressId, {
         isPrimary: IsPrimary.PRIMARY,
+      });
+      const addresses = await queryRunner.manager.find(Address, {
+        where: {
+          user: { id: userId },
+        },
       });
       await queryRunner.commitTransaction();
     } catch (error) {
@@ -149,8 +246,7 @@ export class AddressesService {
     userId: number,
     addressId: number,
   ): Promise<DeleteResult | undefined> {
-    const user = await this.usersService.getUserById(userId);
-    await this.checkIsOwnAddress(user, addressId);
+    await this.checkIsOwnAddress(userId, addressId);
     const deletedAddress = await this.addressesRepository.delete(addressId);
     if (deletedAddress.affected === 0) {
       throw new ForbiddenException('주소를 삭제할 수 없습니다.');

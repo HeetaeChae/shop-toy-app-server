@@ -3,11 +3,11 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { Roles } from 'src/enums/roles.enum';
 
 @Injectable()
 export class AuthService {
@@ -16,16 +16,9 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async signup(email: string, pass: string, nickname: string, roles: number) {
-    const existingEmail = await this.usersService.getUserByEmail(email);
-    if (existingEmail) {
-      throw new UnauthorizedException('이미 존재하는 이메일입니다.');
-    }
-    const existingNickname =
-      await this.usersService.getUserByNickname(nickname);
-    if (existingNickname) {
-      throw new UnauthorizedException('이미 존재하는 닉네임입니다.');
-    }
+  async signup(email: string, pass: string, nickname: string, roles: Roles) {
+    await this.usersService.checkIsExistingEmail(email);
+    await this.usersService.checkIsExistingNickname(nickname);
     const hashedPassword = await bcrypt.hash(pass, 10);
     const newUser = await this.usersService.createUser(
       email,

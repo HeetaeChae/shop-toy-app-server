@@ -18,27 +18,26 @@ export class SearchesService {
 
   // 내가 한 검색인지 체크
   async checkIsOwnSearch(
-    user: User,
+    userId: number,
     searchId: number,
   ): Promise<void | undefined> {
     const isOwnSearch = await this.searchesRepository.findOne({
-      where: { user, id: searchId },
+      where: { user: { id: userId }, id: searchId },
     });
     if (!isOwnSearch) {
-      throw new ForbiddenException('내가 한 검색이 아닙니다.');
+      throw new ForbiddenException('검색 기록을 찾을 수 없습니다.');
     }
   }
 
   // 내 최근 검색어 (10개)
   async getMySearches(userId: number): Promise<Search[] | undefined> {
     return this.searchesRepository
-      .createQueryBuilder('searchs')
-      .innerJoin('searches.user', 'user')
-      .where('user.id = :userId', { userId })
+      .createQueryBuilder('searches')
+      .select('searches.keyword')
+      .addSelect('COUNT(*) AS keywordCount')
       .orderBy('searches.createdAt', 'DESC')
       .groupBy('searches.keyword')
-      .limit(10)
-      .getMany();
+      .getRawMany();
   }
 
   // 1개월간 트렌드 검색어 (10개)
@@ -59,8 +58,12 @@ export class SearchesService {
     keyword: string,
   ): Promise<Search | undefined> {
     const user = await this.usersService.getUserById(userId);
-    const newSearch = await this.searchesRepository.create({ user, keyword });
-    return this.searchesRepository.save(newSearch);
+    const newSearch = this.searchesRepository.create({ user, keyword });
+    const savedSearch = this.searchesRepository.save(newSearch);
+    if (!savedSearch) {
+      throw new ForbiddenException('검색어를 저장할 수 없습니다.');
+    }
+    return savedSearch;
   }
 
   // 검색어 삭제
@@ -68,8 +71,7 @@ export class SearchesService {
     userId: number,
     searchId: number,
   ): Promise<DeleteResult | undefined> {
-    const user = await this.usersService.getUserById(userId);
-    await this.checkIsOwnSearch(user, searchId);
+    await this.checkIsOwnSearch(userId, searchId);
     const deletedSearch = await this.searchesRepository.delete(searchId);
     if (deletedSearch.affected === 0) {
       throw new NotFoundException('검색어가 삭제처리되지 않습니다.');

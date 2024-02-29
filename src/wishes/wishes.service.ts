@@ -29,11 +29,11 @@ export class WishesService {
     private dataSource: DataSource,
   ) {}
 
-  async createWish(user: User): Promise<Wish | undefined> {
-    const newWish = this.wishsRepository.create({
-      user,
-    });
-    return this.wishsRepository.save(newWish);
+  async checkIsExistWish(user: User): Promise<void | undefined> {
+    const existWish = await this.wishsRepository.findOne({ where: { user } });
+    if (existWish) {
+      throw new ConflictException('이미 찜 데이터가 존재합니다.');
+    }
   }
 
   async getWishByUserId(userId: number) {

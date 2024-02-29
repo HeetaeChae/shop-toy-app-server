@@ -49,10 +49,39 @@ export class RecentlyViewedProductsService {
   }
 
   // 내가 최근 본 상품 5개 가져오기
-  async getMyRecentlyViewedProducts(userId: number) {}
+  async getMyRecentlyViewedProducts(
+    userId: number,
+  ): Promise<Product[] | undefined> {
+    return this.productsRepository
+      .createQueryBuilder('products')
+      .leftJoinAndSelect(
+        'products.recentlyViewedProducts',
+        'recentlyViewedProducts',
+      )
+      .innerJoin('recentlyViewedProducts.user', 'user')
+      .addSelect('COUNT(recentlyViewedProducts.id) AS viewedCount')
+      .where('user.id = :userId', { userId })
+      .groupBy('products.id')
+      .addGroupBy('recentlyViewedProducts.id')
+      .orderBy('recentlyViewedProducts.createdAt', 'DESC')
+      .limit(5)
+      .getMany();
+  }
 
   // 최근 가장 많이 클릭된 트렌드 상품 5개 가져오기
-  async getTrendRecentlyViewedProducts() {}
+  async getTrendRecentlyViewedProducts(): Promise<Product[] | undefined> {
+    return await this.productsRepository
+      .createQueryBuilder('products')
+      .leftJoinAndSelect(
+        'products.recentlyViewedProducts',
+        'recentlyViewedProducts',
+      )
+      .addSelect('COUNT(recentlyViewedProducts.id) AS viewedCount')
+      .groupBy('products.id')
+      .addGroupBy('recentlyViewedProducts.id')
+      .orderBy('viewedCount', 'DESC')
+      .getMany();
+  }
 
   // 최근 본 상품 등록
   async createRecentlyViewedProduct(

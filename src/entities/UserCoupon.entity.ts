@@ -1,13 +1,5 @@
-import { PickType } from '@nestjs/swagger';
-import { IsActive } from 'src/enums/is-active.enum';
 import { IsUsed } from 'src/enums/is-used.enum';
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { BaseEntity } from './BaseEntity.entity';
 import { Coupon } from './Coupon.entity';
 import { User } from './User.entity';
@@ -18,7 +10,7 @@ export class UserCoupon extends BaseEntity {
     name: 'is_used',
     type: 'enum',
     enum: IsUsed,
-    default: IsUsed.NOTUSED,
+    default: IsUsed.NOT_USED,
   })
   isUsed: IsUsed;
 

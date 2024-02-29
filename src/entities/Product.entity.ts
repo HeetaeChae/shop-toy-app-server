@@ -3,6 +3,7 @@ import { Gender } from 'src/enums/gender.enum';
 import { Size } from 'src/enums/size.enum';
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { BaseEntity } from './BaseEntity.entity';
+import { BoughtProduct } from './BoughtProduct.entity';
 import { CartProduct } from './CartProduct.entity';
 import { Category } from './Category.entity';
 import { Inquiry } from './Inquiry.entity';
@@ -86,6 +87,9 @@ export class Product extends BaseEntity {
     (recentlyViewedProducts) => recentlyViewedProducts.product,
   )
   recentlyViewedProducts: RecentlyViewedProduct[];
+
+  @OneToMany(() => BoughtProduct, (boughtProducts) => boughtProducts.product)
+  boughtProducts: BoughtProduct[];
 
   /*
   @ManyToMany(() => Wish, (wishes) => wishes.products, {

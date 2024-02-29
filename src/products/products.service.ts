@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   forwardRef,
   Inject,
   Injectable,
@@ -12,6 +13,8 @@ import { ProductOrderBy, ProductOrderName } from 'src/enums/product-order.enum';
 import { Size } from 'src/enums/size.enum';
 import { UsersService } from 'src/users/users.service';
 import { LessThan, MoreThan, Repository } from 'typeorm';
+import { CreateProductImgUrlDto } from './dto/create-product-img-url.dto';
+import { CreateProductDto } from './dto/create-product.dto';
 
 @Injectable()
 export class ProductsService {
@@ -29,6 +32,15 @@ export class ProductsService {
       throw new NotFoundException('상품을 찾을 수 없습니다.');
     }
     return product;
+  }
+
+  async checkIsExistProductName(productName: string) {
+    const product = await this.productsRepository.findOne({
+      where: { name: productName },
+    });
+    if (product) {
+      throw new ConflictException('이미 존재하는 상품명입니다.');
+    }
   }
 
   async getProducts(
@@ -75,6 +87,16 @@ export class ProductsService {
       order: { [orderName]: orderBy },
       take: page * pageSize,
       skip: (page - 1) * pageSize,
+    });
+  }
+
+  async createProduct(userId: number, createProductDto: CreateProductDto) {
+    const productName = createProductDto.name;
+    await this.checkIsExistProductName(productName);
+    const user = await this.usersService.getUserById(userId);
+    const newProduct = await this.productsRepository.create({
+      user,
+      ...createProductDto,
     });
   }
 }

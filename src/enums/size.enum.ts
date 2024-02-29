@@ -8,3 +8,19 @@ export enum Size {
   XXL = 'XXL',
   FREE = 'FREE',
 }
+
+export enum ClothingSize {}
+
+export enum BottomSize {}
+
+export enum ShoeSize {}
+
+export enum DressSize {}
+
+export enum GlassesSize {}
+
+export enum WatchSize {}
+
+export enum HatSize {}
+
+export enum BagSize {}

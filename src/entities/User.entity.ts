@@ -2,6 +2,7 @@ import { Roles } from 'src/enums/roles.enum';
 import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 import { Address } from './Address.entity';
 import { BaseEntity } from './BaseEntity.entity';
+import { BoughtProduct } from './BoughtProduct.entity';
 import { Inquiry } from './Inquiry.entity';
 import { InquiryComment } from './InquiryComment.entity';
 import { Notice } from './Notice.entity';
@@ -71,6 +72,9 @@ export class User extends BaseEntity {
     (recentlyViewedProducts) => recentlyViewedProducts.user,
   )
   recentlyViewedProducts: RecentlyViewedProduct[];
+
+  @OneToMany(() => BoughtProduct, (boughtProduct) => boughtProduct.user)
+  boughtProducts: BoughtProduct[];
 
   @OneToMany(() => Address, (addresses) => addresses.user)
   addresses: Address[];

@@ -33,6 +33,21 @@ export class CartsService {
     private dataSource: DataSource,
   ) {}
 
+  async creatCart(user: User): Promise<Cart | undefined> {
+    await this.checkIsExistCart(user);
+    const newCart = this.cartsRepository.create({
+      user,
+    });
+    return newCart;
+  }
+
+  async checkIsExistCart(user: User): Promise<void | undefined> {
+    const existCart = await this.cartsRepository.findOne({ where: { user } });
+    if (existCart) {
+      throw new ConflictException('이미 장바구니가 생성되어있습니다.');
+    }
+  }
+
   async getCartById(cartId: number): Promise<Cart | undefined> {
     const cart = await this.cartsRepository.findOne({ where: { id: cartId } });
     if (!cart) {
@@ -62,13 +77,6 @@ export class CartsService {
     }
   }
 
-  async checkIsExistCart(user: User): Promise<void | undefined> {
-    const existCart = await this.cartsRepository.findOne({ where: { user } });
-    if (existCart) {
-      throw new ConflictException('이미 장바구니가 생성되어있습니다.');
-    }
-  }
-
   async checkIsExistCarProduct(
     cart: Cart,
     product: Product,
@@ -79,14 +87,6 @@ export class CartsService {
     if (existCartProduct) {
       throw new ConflictException('이미 등록된 장바구니 상품입니다.');
     }
-  }
-
-  async creatCart(user: User): Promise<Cart | undefined> {
-    await this.checkIsExistCart(user);
-    const newCart = await this.cartsRepository.create({
-      user,
-    });
-    return this.cartsRepository.save(newCart);
   }
 
   async getCartProducts(userId: number): Promise<CartProduct[] | undefined> {
@@ -129,7 +129,7 @@ export class CartsService {
     try {
       // 1) 장바구니 체크여부 업데이트
       await this.cartsRepository.update(cart.id, {
-        isChecked: IsChecked.NOTCHECKED,
+        isChecked: IsChecked.NOT_CHECKED,
       });
       // 2) 장바구니에 상품 등록
       const newCartProduct = await this.cartProductsRepository.create({

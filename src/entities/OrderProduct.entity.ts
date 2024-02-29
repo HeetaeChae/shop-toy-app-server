@@ -50,7 +50,7 @@ export class OrderProduct extends BaseEntity {
     name: 'is_applied_coupon',
     type: 'enum',
     enum: IsApplied,
-    default: IsApplied.NOTAPPLIED,
+    default: IsApplied.NOT_APPLIED,
   })
   isAppliedCoupon: IsApplied;
 
